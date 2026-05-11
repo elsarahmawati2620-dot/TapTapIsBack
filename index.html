@@ -234,7 +234,9 @@
       <div style="font-size:.75rem;color:rgba(56,189,248,.5);text-transform:uppercase;letter-spacing:.1em">$TAP Earned</div>
     </div>
     <input id="submit-name-input" maxlength="20" placeholder="Your name / alias" class="wallet-input" />
-    <button onclick="submitScore()" class="btn-primary" style="width:100%;justify-content:center">Submit &amp; Reset Score</button>
+    <div id="submit-error" style="display:none;color:#ef4444;font-size:.78rem;text-align:center;margin-bottom:8px;padding:8px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px"></div>
+    <div id="submit-status" style="display:none;color:#4ade80;font-size:.78rem;text-align:center;margin-bottom:8px;padding:8px 12px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:10px"></div>
+    <button id="submit-do-btn" onclick="submitScore()" class="btn-primary" style="width:100%;justify-content:center">Submit &amp; Reset Score</button>
     <p style="color:rgba(56,189,248,.4);font-size:.72rem;text-align:center;margin-top:8px">Score resets to 0 after submission</p>
   </div>
 </div>
@@ -1013,7 +1015,7 @@ coin.src=SKINS.find(s=>s.id===activeSkin)?.img||SKINS[0].img;
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyCBPp96knxOxC35sXKoi1JiUKoVBLemfwQ",
   authDomain:        "taptapisback.firebaseapp.com",
-  databaseURL:       "https://taptapisback-default-rtdb.firebaseio.com",
+  databaseURL:       "https://taptapisback-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:         "taptapisback",
   storageBucket:     "taptapisback.firebasestorage.app",
   messagingSenderId: "688587946195",
@@ -1080,8 +1082,18 @@ function openSubmitModal(){
 
 async function submitScore(){
   const name=document.getElementById('submit-name-input').value.trim();
-  if(!name) return;
+  const errEl=document.getElementById('submit-error');
+  const statEl=document.getElementById('submit-status');
+  const btn=document.getElementById('submit-do-btn');
+  errEl.style.display='none'; statEl.style.display='none';
+  if(!name){
+    errEl.textContent='⚠️ Masukkan nama / alias kamu dulu!';
+    errEl.style.display='block';
+    return;
+  }
+  btn.disabled=true; btn.textContent='Submitting...';
   const entry={name,score,date:new Date().toLocaleDateString('id-ID')};
+  let firebaseOk=false;
   if(FIREBASE_READY&&lbRef){
     try{
       await lbRef.push(entry);
@@ -1090,15 +1102,26 @@ async function submitScore(){
         all.sort((a,b)=>b.score-a.score);
         if(all.length>10) all.slice(10).forEach(e=>lbRef.child(e.key).remove());
       });
-    }catch(e){ console.error('Firebase write error:',e); }
-  } else {
-    leaderboard=[...leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,10);
-    lss('tap_leaderboard',leaderboard);
-    renderLeaderboard();
+      firebaseOk=true;
+    }catch(e){
+      console.error('Firebase write error:',e);
+      errEl.textContent='⚠️ Firebase gagal (periksa Database Rules di Firebase Console — set ".write": true). Score disimpan lokal.';
+      errEl.style.display='block';
+    }
   }
-  score=0;taps=0;combo=1;energy=MAX_E;lightningFired.clear();
-  submitBtn.style.display='none';nextLight.style.display='none';comboBadge.style.display='none';
-  closeModal('submit-modal');updateUI();
+  leaderboard=[...leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,10);
+  lss('tap_leaderboard',leaderboard);
+  renderLeaderboard();
+  if(firebaseOk){
+    statEl.textContent='✅ Score berhasil disubmit ke leaderboard!';
+    statEl.style.display='block';
+  }
+  setTimeout(()=>{
+    score=0;taps=0;combo=1;energy=MAX_E;lightningFired.clear();
+    submitBtn.style.display='none';nextLight.style.display='none';comboBadge.style.display='none';
+    btn.disabled=false; btn.textContent='Submit & Reset Score';
+    closeModal('submit-modal');updateUI();
+  }, firebaseOk?1200:2800);
 }
 
 renderLeaderboard();
