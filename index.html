@@ -7,7 +7,6 @@
   <meta name="description" content="TapTapIsBack ($TAP) — The most addictive memecoin on TON. Tap your way to the moon." />
   <link rel="icon" href="https://i.imgur.com/IWK2yHm.png" type="image/png" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <!-- Firebase SDK (Realtime Database) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
@@ -47,7 +46,6 @@
     .hl{color:#38bdf8}
     .desc{color:rgba(186,230,253,.6);font-size:1rem;line-height:1.7;max-width:560px}
     .card{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:20px}
-    /* Hero */
     .hero{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:80px 20px 40px;text-align:center}
     .coin-img{width:200px;height:200px;filter:drop-shadow(0 0 30px rgba(56,189,248,.8)) drop-shadow(0 0 60px rgba(56,189,248,.35));animation:float-coin 3s ease-in-out infinite}
     .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;margin-bottom:16px;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--sky-faint);border:1px solid rgba(56,189,248,.35);color:#38bdf8}
@@ -65,7 +63,6 @@
     .btn-secondary:hover{transform:scale(1.04)}
     .contract-box{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.25);border-radius:16px;padding:14px 28px;display:inline-block}
     .contract-label{font-size:.65rem;color:rgba(56,189,248,.55);text-transform:uppercase;letter-spacing:.15em;font-weight:700;margin-bottom:4px}
-    /* Game */
     .game-card{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:28px;padding:36px 28px;max-width:420px;margin:36px auto 0}
     .score-display{font-size:3rem;font-weight:900;margin-bottom:4px}
     .score-label{color:rgba(56,189,248,.6);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
@@ -89,7 +86,6 @@
     .tap-ripple{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(56,189,248,.5) 0%,transparent 70%);animation:ripple-out .5s ease-out forwards}
     .next-lightning{font-size:.7rem;color:rgba(56,189,248,.5);text-align:center;margin-bottom:10px;display:none}
     .next-lightning span{color:#fbbf24}
-    /* Skins */
     .skins-section{max-width:520px;margin:32px auto 0}
     .skins-title{font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#38bdf8;margin-bottom:16px}
     .skins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -106,7 +102,6 @@
     .skin-active-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#38bdf8}
     .skin-lock-icon{position:absolute;top:5px;left:5px;font-size:.75rem;opacity:.6}
     .skins-hint{font-size:.7rem;color:rgba(56,189,248,.4);margin-top:10px;text-align:center}
-    /* Leaderboard */
     .lb-table{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:24px;overflow:hidden;margin-top:32px}
     .lb-row{display:flex;align-items:center;gap:16px;padding:16px 24px}
     .lb-row:not(:last-child){border-bottom:1px solid rgba(56,189,248,.08)}
@@ -330,7 +325,6 @@
     <div class="section-badge">Mini Game</div>
     <h2>Tap. Earn. <span class="hl">Repeat.</span></h2>
     <p class="desc" style="margin:0 auto">Tap the coin to earn $TAP. Build combos. Hit <strong style="color:#fbbf24">1,000 $TAP</strong> to trigger LIGHTNING MODE!</p>
-    <!-- Video above game -->
     <div style="max-width:420px;margin:28px auto 0;border-radius:20px;overflow:hidden;border:1px solid rgba(56,189,248,.25);box-shadow:0 0 30px rgba(56,189,248,.12)">
       <video src="https://i.imgur.com/nctAX2z.mp4" autoplay loop muted playsinline style="width:100%;display:block;border-radius:20px"></video>
     </div>
@@ -484,13 +478,6 @@
 const TREASURY   = 'UQD00L94NNmKDs-l7A046yXnBZ5Up7wg55wRSPq5qqN_1Q09';
 const DEV_WALLET = 'UQD00L94NNmKDs-l7A046yXnBZ5Up7wg55wRSPq5qqN_1Q09';
 
-/*
-  SKIN UTILITIES:
-  - default  : No bonus. Standard gameplay.
-  - golden   : +25% TAP per tap (scoreMultiplier 1.25)
-  - crystal  : Energy regenerates 2x faster (regenMult 2)
-  - fire     : Max combo cap raised to 15x + combo expires 2s later (comboTimeout 3500ms instead of 1500ms)
-*/
 const SKINS = [
   {
     id:'default',  name:'Default TAP',  img:'https://i.imgur.com/IWK2yHm.png',
@@ -529,10 +516,167 @@ const WALLET_LINKS = {
 };
 
 /* =========================================================
+   SOUND SYSTEM — Web Audio API (no external files needed)
+   ========================================================= */
+let _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx){
+    try{ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  /* Resume if suspended (browser autoplay policy) */
+  if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+/* Short crisp "tick" on every tap — pitch rises with combo */
+function playSoundTap(combo){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    /* Primary tone */
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    const freq = Math.min(800, 260 + combo * 35);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.07);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.start(t); osc.stop(t + 0.09);
+    /* Tiny noise "click" layer for physicality */
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const ns = ctx.createBufferSource();
+    ns.buffer = buf;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.06, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    ns.connect(ng); ng.connect(ctx.destination);
+    ns.start(t);
+  }catch(e){}
+}
+
+/* Satisfying "ding" when combo reaches a milestone (5x, 10x, 15x) */
+function playSoundComboMilestone(combo){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    [0, 0.07, 0.14].forEach((delay, i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      const freqs = [523, 659, 784]; /* C5-E5-G5 */
+      osc.frequency.setValueAtTime(freqs[i], t + delay);
+      gain.gain.setValueAtTime(0.13, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.18);
+      osc.start(t + delay); osc.stop(t + delay + 0.18);
+    });
+  }catch(e){}
+}
+
+/* Low descending "whomp" when combo resets */
+function playSoundComboReset(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(280, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.18);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.start(t); osc.stop(t + 0.18);
+  }catch(e){}
+}
+
+/* Buzzy "no energy" warning */
+function playSoundNoEnergy(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(120, t);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.start(t); osc.stop(t + 0.12);
+  }catch(e){}
+}
+
+/* Epic lightning-mode boom + sweep */
+function playSoundLightning(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    /* Sweep up */
+    const sw = ctx.createOscillator();
+    const sg = ctx.createGain();
+    sw.connect(sg); sg.connect(ctx.destination);
+    sw.type = 'sawtooth';
+    sw.frequency.setValueAtTime(80, t);
+    sw.frequency.exponentialRampToValueAtTime(2400, t + 0.35);
+    sg.gain.setValueAtTime(0.22, t);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+    sw.start(t); sw.stop(t + 0.45);
+    /* Thunder noise */
+    const bufLen = ctx.sampleRate * 0.6;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const bd = buf.getChannelData(0);
+    for(let i=0;i<bufLen;i++) bd[i]=(Math.random()*2-1)*Math.pow(1-i/bufLen,1.5);
+    const ns = ctx.createBufferSource();
+    ns.buffer = buf;
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass'; nf.frequency.value = 160; nf.Q.value = 1.2;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.45, t + 0.05);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+    ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+    ns.start(t + 0.05);
+    /* Chord sting */
+    [261, 329, 392, 523].forEach((f, i)=>{
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + 0.3);
+      g.gain.linearRampToValueAtTime(0.1, t + 0.32 + i*0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      o.start(t + 0.3); o.stop(t + 0.85);
+    });
+  }catch(e){}
+}
+
+/* Unlock skin success jingle */
+function playSoundUnlock(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    [0,0.08,0.16,0.25].forEach((delay,i)=>{
+      const freqs=[392,523,659,784];
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freqs[i];
+      gain.gain.setValueAtTime(0.12, t+delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.2);
+      osc.start(t+delay); osc.stop(t+delay+0.2);
+    });
+  }catch(e){}
+}
+
+/* =========================================================
    STATE
    ========================================================= */
 function ls(k,d){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}}
-function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}} 
+function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 
 let score=0,taps=0,energy=100,combo=1,comboTimer=null;
 let activeSkin   = ls('tap_skin','default');
@@ -549,31 +693,30 @@ function activeSkinData(){ return SKINS.find(s=>s.id===activeSkin)||SKINS[0]; }
 /* =========================================================
    DOM
    ========================================================= */
-const scoreEl      = document.getElementById('score');
-const energyBar    = document.getElementById('energy-bar');
-const energyTxt    = document.getElementById('energy-text');
-const tapsTxt      = document.getElementById('taps-text');
-const hintEl       = document.getElementById('energy-hint');
-const comboBadge   = document.getElementById('combo-badge');
-const statTaps     = document.getElementById('stat-taps');
-const statCombo    = document.getElementById('stat-combo');
-const statAvg      = document.getElementById('stat-avg');
-const tapArea      = document.getElementById('tap-area');
-const coin         = document.getElementById('tap-coin');
-const submitBtn    = document.getElementById('submit-btn');
-const nextLight    = document.getElementById('next-lightning');
-const walletBtn    = document.getElementById('wallet-nav-btn');
-const bonusBadge   = document.getElementById('skin-bonus-badge');
+const scoreEl    = document.getElementById('score');
+const energyBar  = document.getElementById('energy-bar');
+const energyTxt  = document.getElementById('energy-text');
+const tapsTxt    = document.getElementById('taps-text');
+const hintEl     = document.getElementById('energy-hint');
+const comboBadge = document.getElementById('combo-badge');
+const statTaps   = document.getElementById('stat-taps');
+const statCombo  = document.getElementById('stat-combo');
+const statAvg    = document.getElementById('stat-avg');
+const tapArea    = document.getElementById('tap-area');
+const coin       = document.getElementById('tap-coin');
+const submitBtn  = document.getElementById('submit-btn');
+const nextLight  = document.getElementById('next-lightning');
+const walletBtn  = document.getElementById('wallet-nav-btn');
+const bonusBadge = document.getElementById('skin-bonus-badge');
 
 /* =========================================================
-   PARTICLES  — dense star-field with glow halos & gold sparks
+   PARTICLES
    ========================================================= */
 (function(){
   const c=document.getElementById('particle-canvas'),ctx=c.getContext('2d');
   let pts=[];
   const COLS=['rgba(56,189,248,','rgba(125,211,252,','rgba(186,230,253,','rgba(14,165,233,','rgba(255,255,255,','rgba(165,243,252,','rgba(251,191,36,','rgba(99,202,253,'];
   function resize(){c.width=innerWidth;c.height=innerHeight}
-  /* each particle can be type: 'dot' | 'star' | 'spark' */
   function mk(init){
     const type=Math.random()<.15?'star':Math.random()<.08?'spark':'dot';
     const r=type==='star'?Math.random()*3+1.5:type==='spark'?Math.random()*1.2+.4:Math.random()*2.2+.4;
@@ -614,7 +757,6 @@ const bonusBadge   = document.getElementById('skin-bonus-badge');
       const p=pts[i];
       p.x+=p.vx;p.y+=p.vy;p.tw+=p.ts;p.rot+=p.rotS;
       const a=p.a*(.55+.45*Math.sin(p.tw));
-      /* glow halo for larger particles */
       if(p.r>1.2){
         const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3.5);
         g.addColorStop(0,p.col+a*.9+')');
@@ -630,7 +772,6 @@ const bonusBadge   = document.getElementById('skin-bonus-badge');
         pts.splice(i,1);pts.push(mk(false));
       }
     }
-    /* continuously trickle new particles to keep density up */
     if(pts.length<c.width*c.height/3500+60)pts.push(mk(false));
     requestAnimationFrame(draw);
   }
@@ -666,14 +807,17 @@ function triggerLightning(milestone){
   const ov=document.getElementById('lightning-overlay');
   ov.style.display='block';
   const fl=document.getElementById('lightning-flash'),lt=document.getElementById('lightning-text');
-  fl.style.animation='none';fl.offsetWidth;fl.style.animation='lightning-flash 1.8s ease-out forwards';
-  lt.style.animation='none';lt.offsetWidth;lt.style.animation='lightning-text-in 1.8s ease-out forwards';
+  fl.style.animation='none';lt.style.animation='none';
+  void fl.offsetWidth;
+  fl.style.animation='lightning-flash 1.8s ease-out forwards';
+  lt.style.animation='lightning-text-in 2.2s ease-out forwards';
   coin.classList.add('lightning-glow');
-  setTimeout(()=>{ov.style.display='none';svg.innerHTML='';coin.classList.remove('lightning-glow')},1900);
+  playSoundLightning();
+  setTimeout(()=>{ov.style.display='none';coin.classList.remove('lightning-glow');},2400);
 }
 
 /* =========================================================
-   GAME — skin utilities applied here
+   GAME LOGIC
    ========================================================= */
 function updateUI(){
   scoreEl.textContent=score.toLocaleString();
@@ -689,15 +833,15 @@ function updateUI(){
     nextLight.style.display='block';nextLight.innerHTML=`Next ⚡ at <span>${next.toLocaleString()}</span> $TAP`;
     submitBtn.style.display='flex';
   }
-  // Show bonus badge for non-default skins
-  const sd = activeSkinData();
-  if(sd.id !== 'default'){
+  const sd=activeSkinData();
+  if(sd.id!=='default'){
     bonusBadge.classList.remove('hidden');
-    bonusBadge.textContent = sd.utilityIcon + ' ' + sd.utility;
+    bonusBadge.textContent=sd.utilityIcon+' '+sd.utility;
   } else {
     bonusBadge.classList.add('hidden');
   }
 }
+
 function spawnFloat(x,y,earned){
   const lbl=document.createElement('div');lbl.className='float-label';lbl.textContent='+'+earned;
   lbl.style.cssText=`left:${x}px;top:${y-20}px;transform:translate(-50%,-50%)`;
@@ -708,35 +852,73 @@ function spawnRipple(x,y){
   r.style.cssText=`left:${x-60}px;top:${y-60}px;width:120px;height:120px`;
   tapArea.appendChild(r);setTimeout(()=>r.remove(),500);
 }
-function doTap(cx,cy){
-  if(energy<E_TAP)return;
+
+/* BUG FIX: track last tap timestamp per pointerId to prevent duplicate
+   events from touch + pointer both firing on the same physical tap */
+const _lastTapTime = {};
+
+function doTap(cx, cy, pid){
+  /* Deduplicate: ignore if same pointer fired within 50ms */
+  const now = Date.now();
+  if(pid !== undefined){
+    if(_lastTapTime[pid] && now - _lastTapTime[pid] < 50) return;
+    _lastTapTime[pid] = now;
+  }
+
+  if(energy < E_TAP){ playSoundNoEnergy(); return; }
+
   const sd = activeSkinData();
-  energy-=E_TAP;
-  combo=Math.min(sd.maxCombo, combo+.5);
-  const rawEarned = 0|combo;
+  const prevComboInt = 0|combo;
+  energy -= E_TAP;
+  combo = Math.min(sd.maxCombo, combo + 0.5);
+  const comboInt = 0|combo;
+  const rawEarned = comboInt;
   const earned = Math.round(rawEarned * sd.scoreMultiplier);
-  score+=earned;taps++;
-  if(navigator.vibrate)navigator.vibrate(30);
+  score += earned; taps++;
+
+  if(navigator.vibrate) navigator.vibrate(30);
+
+  /* Sound: combo milestone dings */
+  if(comboInt !== prevComboInt && (comboInt === 5 || comboInt === 10 || comboInt === 15)){
+    playSoundComboMilestone(comboInt);
+  } else {
+    playSoundTap(comboInt);
+  }
+
   coin.classList.remove('shaking');void coin.offsetWidth;coin.classList.add('shaking');
   setTimeout(()=>coin.classList.remove('shaking'),220);
-  if(comboTimer)clearTimeout(comboTimer);
-  comboTimer=setTimeout(()=>{combo=1;updateUI()}, sd.comboTimeout);
-  const r=tapArea.getBoundingClientRect();
-  spawnFloat(cx-r.left,cy-r.top,earned);spawnRipple(cx-r.left,cy-r.top);
-  const ms=(0|(score/1000))*1000;
-  if(ms>0&&!lightningFired.has(ms)){lightningFired.add(ms);triggerLightning(ms)}
+
+  if(comboTimer) clearTimeout(comboTimer);
+  comboTimer = setTimeout(()=>{
+    if(combo > 2) playSoundComboReset();
+    combo = 1;
+    updateUI();
+  }, sd.comboTimeout);
+
+  const r = tapArea.getBoundingClientRect();
+  spawnFloat(cx - r.left, cy - r.top, earned);
+  spawnRipple(cx - r.left, cy - r.top);
+
+  const ms = (0|(score/1000))*1000;
+  if(ms > 0 && !lightningFired.has(ms)){ lightningFired.add(ms); triggerLightning(ms); }
   updateUI();
 }
-coin.addEventListener('pointerdown',e=>{e.preventDefault();coin.classList.add('pressed');doTap(e.clientX,e.clientY)});
-coin.addEventListener('pointerup',()=>coin.classList.remove('pressed'));
-coin.addEventListener('pointerleave',()=>coin.classList.remove('pressed'));
-coin.addEventListener('touchstart',e=>{e.preventDefault();[...e.changedTouches].forEach(t=>doTap(t.clientX,t.clientY))},{passive:false});
-coin.addEventListener('touchend',e=>{e.preventDefault();coin.classList.remove('pressed')},{passive:false});
 
-// Energy regen — uses skin's regenMult
+/* BUG FIX: Use only pointer events (they handle both mouse & touch).
+   Remove touchstart/touchend entirely to avoid double-firing on mobile. */
+coin.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  coin.classList.add('pressed');
+  doTap(e.clientX, e.clientY, e.pointerId);
+});
+coin.addEventListener('pointerup',   ()=>coin.classList.remove('pressed'));
+coin.addEventListener('pointerleave',()=>coin.classList.remove('pressed'));
+coin.addEventListener('pointercancel',()=>coin.classList.remove('pressed'));
+
+/* Energy regen */
 setInterval(()=>{
   const sd = activeSkinData();
-  energy=Math.min(MAX_E, energy + BASE_E_REGEN * sd.regenMult);
+  energy = Math.min(MAX_E, energy + BASE_E_REGEN * sd.regenMult);
   updateUI();
 }, E_INT);
 
@@ -765,18 +947,13 @@ function renderSkins(){
 }
 
 function handleSkinClick(id){
-  const skin = SKINS.find(s=>s.id===id);
-  // If already owned, equip it
+  const skin=SKINS.find(s=>s.id===id);
   if(ownedSkins.includes(id)){
     activeSkin=id;lss('tap_skin',id);
     coin.src=skin.img;renderSkins();updateUI();return;
   }
-  // Not owned — must purchase
   pendingSkinId=id;
-  if(!walletAddr){
-    openModal('wallet-modal');
-    return;
-  }
+  if(!walletAddr){ openModal('wallet-modal'); return; }
   openPayModal(id);
 }
 
@@ -785,8 +962,7 @@ function openPayModal(id){
   const nanos=Math.round(skin.price*1e9);
   const comment=`Buy ${skin.name} - TapTapIsBack`;
   const body=document.getElementById('pay-modal-body');
-  const useTonConnect = tcUI && tcUI.connected;
-
+  const useTonConnect=tcUI&&tcUI.connected;
   body.innerHTML=`
     <div style="text-align:center;margin-bottom:20px">
       <img src="${skin.img}" style="width:110px;height:110px;border-radius:50%;filter:drop-shadow(0 0 20px rgba(56,189,248,.6));margin-bottom:12px" />
@@ -795,12 +971,12 @@ function openPayModal(id){
       <div style="font-size:1.8rem;font-weight:900;color:#38bdf8;margin:6px 0">${skin.price} TON</div>
       <div style="font-size:.72rem;color:rgba(56,189,248,.45)">→ <span style="color:#7dd3fc;font-family:monospace">${TREASURY.slice(0,12)}…${TREASURY.slice(-6)}</span></div>
     </div>
-    ${useTonConnect ? `
+    ${useTonConnect?`
       <button class="btn-primary" style="width:100%;justify-content:center" onclick="tcSendTx('${TREASURY}',${nanos},'${id}')">
         💎 Pay ${skin.price} TON via Connected Wallet
       </button>
       <p style="color:rgba(56,189,248,.4);font-size:.72rem;text-align:center;margin-top:8px">Skin unlocks automatically after your wallet confirms the transaction.</p>
-    ` : `
+    `:`
       <p style="color:rgba(186,230,253,.6);font-size:.82rem;margin-bottom:10px;text-align:center">Open your wallet to send exactly <strong style="color:#38bdf8">${skin.price} TON</strong>, then tap the confirm button below.</p>
       ${Object.entries(WALLET_LINKS).map(([name,fn])=>`
         <a href="${fn(TREASURY,nanos,comment)}" target="_blank" rel="noopener" class="btn-outline">
@@ -822,6 +998,7 @@ function confirmPurchase(id){
   ownedSkins=[...new Set([...ownedSkins,id])];lss('tap_owned_skins',ownedSkins);
   activeSkin=id;lss('tap_skin',id);
   coin.src=SKINS.find(s=>s.id===id).img;
+  playSoundUnlock();
   closeModal('pay-modal');renderSkins();updateUI();
 }
 
@@ -830,10 +1007,8 @@ coin.src=SKINS.find(s=>s.id===activeSkin)?.img||SKINS[0].img;
 
 /* =========================================================
    FIREBASE CONFIG
-   — Buat project gratis di https://console.firebase.google.com
-   — Enable Realtime Database → Start in TEST mode
-   — Salin config di Project Settings → Your apps → Web app
-   — Isi nilai di bawah ini lalu deploy
+   ✅ Config sudah diisi dengan project taptapisback yang valid.
+   Firebase Realtime Database leaderboard aktif.
    ========================================================= */
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyCBPp96knxOxC35sXKoi1JiUKoVBLemfwQ",
@@ -850,23 +1025,32 @@ const FIREBASE_CONFIG = {
    ========================================================= */
 let db = null;
 let lbRef = null;
-const FIREBASE_READY = FIREBASE_CONFIG.apiKey !== 'GANTI_DENGAN_apiKey_ANDA';
+
+/* BUG FIX: check that apiKey doesn't look like a placeholder */
+const FIREBASE_READY = (
+  FIREBASE_CONFIG.apiKey &&
+  FIREBASE_CONFIG.apiKey.length > 10 &&
+  !FIREBASE_CONFIG.apiKey.includes('GANTI') &&
+  !FIREBASE_CONFIG.apiKey.includes('YOUR_')
+);
 
 (function initFirebase(){
   if(!FIREBASE_READY) return;
   try{
-    firebase.initializeApp(FIREBASE_CONFIG);
+    /* BUG FIX: only initialize if not already initialized */
+    if(!firebase.apps.length){
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
     db = firebase.database();
     lbRef = db.ref('leaderboard');
-    /* live listener — papan skor update otomatis tanpa refresh */
     lbRef.orderByChild('score').limitToLast(10).on('value', snap=>{
       const rows=[];
       snap.forEach(child=>rows.push(child.val()));
-      leaderboard = rows.sort((a,b)=>b.score-a.score);
-      lss('tap_leaderboard', leaderboard); // cache lokal
+      leaderboard=rows.sort((a,b)=>b.score-a.score);
+      lss('tap_leaderboard',leaderboard);
       renderLeaderboard();
     });
-  } catch(e){ console.warn('Firebase init error:',e); }
+  }catch(e){ console.warn('Firebase init error:',e); }
 })();
 
 function renderLeaderboard(){
@@ -896,21 +1080,18 @@ function openSubmitModal(){
 
 async function submitScore(){
   const name=document.getElementById('submit-name-input').value.trim();
-  if(!name)return;
-  const entry={name, score, date:new Date().toLocaleDateString('id-ID')};
-  if(FIREBASE_READY && lbRef){
-    /* simpan ke Firebase — listener akan otomatis update tampilan */
+  if(!name) return;
+  const entry={name,score,date:new Date().toLocaleDateString('id-ID')};
+  if(FIREBASE_READY&&lbRef){
     try{
       await lbRef.push(entry);
-      /* hapus entri lama jika lebih dari 10 */
-      lbRef.orderByChild('score').once('value', snap=>{
+      lbRef.orderByChild('score').once('value',snap=>{
         const all=[];snap.forEach(c=>all.push({key:c.key,...c.val()}));
         all.sort((a,b)=>b.score-a.score);
         if(all.length>10) all.slice(10).forEach(e=>lbRef.child(e.key).remove());
       });
-    } catch(e){ console.error('Firebase write error:',e); }
+    }catch(e){ console.error('Firebase write error:',e); }
   } else {
-    /* fallback: localStorage saja */
     leaderboard=[...leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,10);
     lss('tap_leaderboard',leaderboard);
     renderLeaderboard();
@@ -923,7 +1104,7 @@ async function submitScore(){
 renderLeaderboard();
 
 /* =========================================================
-   TON CONNECT — REAL MAINNET WALLET
+   TON CONNECT
    ========================================================= */
 let tcUI = null;
 
@@ -934,10 +1115,10 @@ const TC_WALLETS = [
 ];
 
 async function initTonConnect(){
-  try {
-    if(typeof TON_CONNECT_UI === 'undefined') return;
+  try{
+    if(typeof TON_CONNECT_UI==='undefined') return;
     const manifest={url:window.location.origin||'https://taptapisback.io',name:'TapTapIsBack',iconUrl:'https://i.imgur.com/IWK2yHm.png'};
-    tcUI = new TON_CONNECT_UI.TonConnectUI({
+    tcUI=new TON_CONNECT_UI.TonConnectUI({
       manifestUrl:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(manifest)),
       buttonRootId:null
     });
@@ -953,7 +1134,7 @@ async function initTonConnect(){
     });
     const restored=await tcUI.connectionRestored;
     if(restored&&tcUI.wallet){walletAddr=tcUI.wallet.account.address;updateWalletBtn();}
-  } catch(e){console.error('TonConnect init failed',e);}
+  }catch(e){ console.error('TonConnect init failed',e); }
 }
 
 function buildWalletModal(){
@@ -970,33 +1151,29 @@ function buildWalletModal(){
 
 async function connectViaWallet(){
   closeModal('wallet-modal');
-  try{ if(tcUI) await tcUI.openModal(); } catch(e){console.error('Connect error',e);}
+  try{ if(tcUI) await tcUI.openModal(); }catch(e){ console.error('Connect error',e); }
 }
 
 async function handleWalletBtn(){
   if(walletAddr){
-    try{ if(tcUI) await tcUI.disconnect(); } catch(e){}
+    try{ if(tcUI) await tcUI.disconnect(); }catch(e){}
     walletAddr=null;updateWalletBtn();
   } else {
     if(tcUI){
-      try{ await tcUI.openModal(); } catch(e){ openModal('wallet-modal'); }
+      try{ await tcUI.openModal(); }catch(e){ openModal('wallet-modal'); }
     } else { openModal('wallet-modal'); }
   }
 }
 
-// Used for TonConnect skin purchase — only confirms skin AFTER tx is approved by wallet
-async function tcSendTx(toAddr, amountNano, skinId){
+async function tcSendTx(toAddr,amountNano,skinId){
   if(!tcUI||!tcUI.connected) return;
-  try {
+  try{
     await tcUI.sendTransaction({
       validUntil:Math.floor(Date.now()/1000)+300,
-      messages:[{address:toAddr, amount:String(amountNano)}]
+      messages:[{address:toAddr,amount:String(amountNano)}]
     });
-    // Only reached if user approved and wallet sent the tx
     confirmPurchase(skinId);
-  } catch(e){
-    console.error('Transaction rejected or failed',e);
-  }
+  }catch(e){ console.error('Transaction rejected or failed',e); }
 }
 
 function updateWalletBtn(){
@@ -1028,7 +1205,7 @@ function renderTipActions(){
   const comment='Tip from TapTapIsBack fan!';
   const useTonConnect=tcUI&&tcUI.connected;
   const el=document.getElementById('tip-modal-actions');
-  if(!el)return;
+  if(!el) return;
   el.innerHTML=useTonConnect?`
     <button class="btn-golden" onclick="tcSendTip(${nanos})">
       ☕ Send ${selectedTipAmount} TON Tip via Wallet
@@ -1042,7 +1219,7 @@ function renderTipActions(){
   `;
 }
 async function tcSendTip(amountNano){
-  if(!tcUI||!tcUI.connected)return;
+  if(!tcUI||!tcUI.connected) return;
   try{
     await tcUI.sendTransaction({
       validUntil:Math.floor(Date.now()/1000)+300,
@@ -1050,7 +1227,7 @@ async function tcSendTip(amountNano){
     });
     closeModal('tip-modal');
     setTimeout(()=>alert('Thank you for your tip! 🙏 The developer appreciates your support!'),300);
-  } catch(e){console.error('Tip failed',e);}
+  }catch(e){ console.error('Tip failed',e); }
 }
 function openTipModal(){
   selectedTipAmount=0.5;
@@ -1062,8 +1239,8 @@ function openTipModal(){
 /* =========================================================
    MODALS
    ========================================================= */
-function openModal(id){document.getElementById(id).classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-bg').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'))});
 </script>
