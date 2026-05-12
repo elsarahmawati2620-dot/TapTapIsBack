@@ -117,6 +117,8 @@
     .lb-score.first{color:#fbbf24}
     .lb-score span{font-size:.7rem;font-weight:700}
     .lb-empty{padding:48px;color:rgba(56,189,248,.4);font-size:1rem;text-align:center}
+    .lb-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:pulse-dot 1.2s ease-in-out infinite;margin-right:6px;vertical-align:middle}
+    .lb-live-badge{display:inline-flex;align-items:center;font-size:.65rem;color:#4ade80;font-weight:700;letter-spacing:.08em;margin-bottom:10px}
     .features-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:40px}
     @media(min-width:540px){.features-grid{grid-template-columns:1fr 1fr}}
     .feature-card{background:var(--card);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.2);border-radius:18px;padding:24px}
@@ -366,7 +368,10 @@
     <div class="section-badge">Leaderboard</div>
     <h2>Top <span class="hl">Tappers</span></h2>
     <p class="desc" style="margin:0 auto">Submit your score and compete globally for the #1 spot!</p>
-    <div class="lb-table" id="lb-table"><div class="lb-empty">No scores yet. Be the first! 🏆</div></div>
+    <div id="lb-live-indicator" style="margin-top:12px;display:none">
+      <span class="lb-live-badge"><span class="lb-live-dot"></span> LIVE — Updates in real-time</span>
+    </div>
+    <div class="lb-table" id="lb-table"><div class="lb-empty">Loading leaderboard...</div></div>
   </div>
 </section>
 
@@ -413,8 +418,7 @@
       <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 1</span><span class="rm-time">Q1 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Launch & Community</div><ul class="rm-items"><li class="done-item">Token concept & branding</li><li class="done-item">Twitter & Telegram launch</li><li class="done-item">Community building (5 000+ members)</li><li class="done-item">groypfi.io listing prep</li></ul></div></div>
       <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 2</span><span class="rm-time">Q2 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Tap Game V1</div><ul class="rm-items"><li class="done-item">Tap-to-earn mini game live</li><li class="done-item">Energy system & combo multipliers</li><li class="done-item">Lightning Mode spectacle</li></ul></div></div>
       <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 3</span><span class="rm-time">Q3–Q4 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Ecosystem Expansion</div><ul class="rm-items"><li class="done-item">Global leaderboard system</li><li class="done-item">Coin skin shop with unique utilities</li><li class="done-item">TON Connect wallet integration</li><li class="done-item">Community tournaments & giveaways</li></ul></div></div>
-      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#fbbf24;animation:pulse-dot 1.2s ease-in-out infinite">🔥</div><div class="rm-line" style="background:linear-gradient(180deg,#fbbf24,rgba(251,191,36,.15))"></div></div><div class="rm-card" style="border-color:rgba(251,191,36,.4);background:rgba(40,25,5,.7)"><div class="rm-meta"><span class="rm-phase" style="color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3)">Phase 4</span><span class="rm-time">Q1–Q2 2026</span><span class="rm-done-label" style="color:#fbbf24">IN PROGRESS 🔥</span></div><div class="rm-title" style="color:#fde68a">Moon Mission 🚀</div><ul class="rm-items"><li style="color:rgba(253,230,138,.75)">Token live on groypfi.io</li>
-<li style="color:rgba(253,230,138,.75)">CEX listings (OKX, Bybit negotiations)</li><li style="color:rgba(253,230,138,.75)">$TAP staking rewards</li><li style="color:rgba(253,230,138,.75)">Game V2 — multiplayer tap battles</li><li style="color:rgba(253,230,138,.75)">Influencer partnership campaign</li></ul></div></div>
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#fbbf24;animation:pulse-dot 1.2s ease-in-out infinite">🔥</div><div class="rm-line" style="background:linear-gradient(180deg,#fbbf24,rgba(251,191,36,.15))"></div></div><div class="rm-card" style="border-color:rgba(251,191,36,.4);background:rgba(40,25,5,.7)"><div class="rm-meta"><span class="rm-phase" style="color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3)">Phase 4</span><span class="rm-time">Q1–Q2 2026</span><span class="rm-done-label" style="color:#fbbf24">IN PROGRESS 🔥</span></div><div class="rm-title" style="color:#fde68a">Moon Mission 🚀</div><ul class="rm-items"><li style="color:rgba(253,230,138,.75)">Token live on groypfi.io</li><li style="color:rgba(253,230,138,.75)">CEX listings (OKX, Bybit negotiations)</li><li style="color:rgba(253,230,138,.75)">$TAP staking rewards</li><li style="color:rgba(253,230,138,.75)">Game V2 — multiplayer tap battles</li><li style="color:rgba(253,230,138,.75)">Influencer partnership campaign</li></ul></div></div>
       <div class="rm-row"><div class="rm-timeline"><div class="rm-dot">5</div></div><div class="rm-card"><div class="rm-meta"><span class="rm-phase">Phase 5</span><span class="rm-time">Q3–Q4 2026</span></div><div class="rm-title">DAO & Mass Adoption 🌍</div><ul class="rm-items"><li>DAO governance — community votes on future</li><li>$TAP in-game economy & NFT skins</li><li>Cross-chain bridge (ETH / BNB)</li><li>10 000+ holder milestone &amp; celebration airdrop</li></ul></div></div>
     </div>
   </div>
@@ -526,17 +530,14 @@ function getAudioCtx(){
   if(!_audioCtx){
     try{ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
   }
-  /* Resume if suspended (browser autoplay policy) */
   if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
   return _audioCtx;
 }
 
-/* Short crisp "tick" on every tap — pitch rises with combo */
 function playSoundTap(combo){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
     const t = ctx.currentTime;
-    /* Primary tone */
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
@@ -547,7 +548,6 @@ function playSoundTap(combo){
     gain.gain.setValueAtTime(0.18, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
     osc.start(t); osc.stop(t + 0.09);
-    /* Tiny noise "click" layer for physicality */
     const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
     const d = buf.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
@@ -561,7 +561,6 @@ function playSoundTap(combo){
   }catch(e){}
 }
 
-/* Satisfying "ding" when combo reaches a milestone (5x, 10x, 15x) */
 function playSoundComboMilestone(combo){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
@@ -571,7 +570,7 @@ function playSoundComboMilestone(combo){
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.type = 'triangle';
-      const freqs = [523, 659, 784]; /* C5-E5-G5 */
+      const freqs = [523, 659, 784];
       osc.frequency.setValueAtTime(freqs[i], t + delay);
       gain.gain.setValueAtTime(0.13, t + delay);
       gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.18);
@@ -580,7 +579,6 @@ function playSoundComboMilestone(combo){
   }catch(e){}
 }
 
-/* Low descending "whomp" when combo resets */
 function playSoundComboReset(){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
@@ -597,7 +595,6 @@ function playSoundComboReset(){
   }catch(e){}
 }
 
-/* Buzzy "no energy" warning */
 function playSoundNoEnergy(){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
@@ -613,12 +610,10 @@ function playSoundNoEnergy(){
   }catch(e){}
 }
 
-/* Epic lightning-mode boom + sweep */
 function playSoundLightning(){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
     const t = ctx.currentTime;
-    /* Sweep up */
     const sw = ctx.createOscillator();
     const sg = ctx.createGain();
     sw.connect(sg); sg.connect(ctx.destination);
@@ -628,7 +623,6 @@ function playSoundLightning(){
     sg.gain.setValueAtTime(0.22, t);
     sg.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
     sw.start(t); sw.stop(t + 0.45);
-    /* Thunder noise */
     const bufLen = ctx.sampleRate * 0.6;
     const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
     const bd = buf.getChannelData(0);
@@ -642,7 +636,6 @@ function playSoundLightning(){
     ng.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
     ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
     ns.start(t + 0.05);
-    /* Chord sting */
     [261, 329, 392, 523].forEach((f, i)=>{
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -656,7 +649,6 @@ function playSoundLightning(){
   }catch(e){}
 }
 
-/* Unlock skin success jingle */
 function playSoundUnlock(){
   try{
     const ctx = getAudioCtx(); if(!ctx) return;
@@ -856,12 +848,9 @@ function spawnRipple(x,y){
   tapArea.appendChild(r);setTimeout(()=>r.remove(),500);
 }
 
-/* BUG FIX: track last tap timestamp per pointerId to prevent duplicate
-   events from touch + pointer both firing on the same physical tap */
 const _lastTapTime = {};
 
 function doTap(cx, cy, pid){
-  /* Deduplicate: ignore if same pointer fired within 50ms */
   const now = Date.now();
   if(pid !== undefined){
     if(_lastTapTime[pid] && now - _lastTapTime[pid] < 50) return;
@@ -881,7 +870,6 @@ function doTap(cx, cy, pid){
 
   if(navigator.vibrate) navigator.vibrate(30);
 
-  /* Sound: combo milestone dings */
   if(comboInt !== prevComboInt && (comboInt === 5 || comboInt === 10 || comboInt === 15)){
     playSoundComboMilestone(comboInt);
   } else {
@@ -907,8 +895,6 @@ function doTap(cx, cy, pid){
   updateUI();
 }
 
-/* BUG FIX: Use only pointer events (they handle both mouse & touch).
-   Remove touchstart/touchend entirely to avoid double-firing on mobile. */
 coin.addEventListener('pointerdown', e=>{
   e.preventDefault();
   coin.classList.add('pressed');
@@ -918,7 +904,6 @@ coin.addEventListener('pointerup',   ()=>coin.classList.remove('pressed'));
 coin.addEventListener('pointerleave',()=>coin.classList.remove('pressed'));
 coin.addEventListener('pointercancel',()=>coin.classList.remove('pressed'));
 
-/* Energy regen */
 setInterval(()=>{
   const sd = activeSkinData();
   energy = Math.min(MAX_E, energy + BASE_E_REGEN * sd.regenMult);
@@ -1009,9 +994,7 @@ renderSkins();
 coin.src=SKINS.find(s=>s.id===activeSkin)?.img||SKINS[0].img;
 
 /* =========================================================
-   FIREBASE CONFIG
-   ✅ Config sudah diisi dengan project taptapisback yang valid.
-   Firebase Realtime Database leaderboard aktif.
+   FIREBASE CONFIG — taptapisback project
    ========================================================= */
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyCBPp96knxOxC35sXKoi1JiUKoVBLemfwQ",
@@ -1020,16 +1003,16 @@ const FIREBASE_CONFIG = {
   projectId:         "taptapisback",
   storageBucket:     "taptapisback.firebasestorage.app",
   messagingSenderId: "688587946195",
-  appId:             "1:688587946195:web:d724ec1dc54fca319cfc26"
+  appId:             "1:688587946195:web:d724ec1dc54fca319cfc26",
+  measurementId:     "G-J3B6KTDFJ5"
 };
 
 /* =========================================================
-   LEADERBOARD — Firebase Realtime Database dengan fallback localStorage
+   LEADERBOARD — Firebase Realtime Database, real-time listener
    ========================================================= */
 let db = null;
 let lbRef = null;
 
-/* BUG FIX: check that apiKey doesn't look like a placeholder */
 const FIREBASE_READY = (
   FIREBASE_CONFIG.apiKey &&
   FIREBASE_CONFIG.apiKey.length > 10 &&
@@ -1040,32 +1023,38 @@ const FIREBASE_READY = (
 (function initFirebase(){
   if(!FIREBASE_READY) return;
   try{
-    /* BUG FIX: only initialize if not already initialized */
     if(!firebase.apps.length){
       firebase.initializeApp(FIREBASE_CONFIG);
     }
     db = firebase.database();
     lbRef = db.ref('leaderboard');
+
+    /* Real-time listener — updates leaderboard instantly when anyone submits */
     lbRef.orderByChild('score').limitToLast(10).on('value', snap=>{
       const rows=[];
       snap.forEach(child=>rows.push(child.val()));
-      leaderboard=rows.sort((a,b)=>b.score-a.score);
-      lss('tap_leaderboard',leaderboard);
+      leaderboard = rows.sort((a,b)=>b.score-a.score);
+      lss('tap_leaderboard', leaderboard);
+      renderLeaderboard();
+      /* Show live indicator */
+      const liveEl = document.getElementById('lb-live-indicator');
+      if(liveEl) liveEl.style.display = 'block';
+    }, err=>{
+      console.warn('Firebase listener error:', err);
       renderLeaderboard();
     });
-  }catch(e){ console.warn('Firebase init error:',e); }
+  }catch(e){
+    console.warn('Firebase init error:', e);
+    renderLeaderboard();
+  }
 })();
 
 function renderLeaderboard(){
   const el=document.getElementById('lb-table');
-  if(!FIREBASE_READY){
-    el.innerHTML=`<div class="lb-empty" style="color:rgba(251,191,36,.7);font-size:.82rem;padding:32px 20px;line-height:1.7">
-      ⚠️ Leaderboard belum terhubung ke Firebase.<br>
-      <span style="color:rgba(56,189,248,.5);font-size:.75rem">Isi FIREBASE_CONFIG di index.html untuk aktifkan leaderboard global.</span>
-    </div>`;
+  if(!leaderboard.length){
+    el.innerHTML='<div class="lb-empty">No scores yet. Be the first! 🏆</div>';
     return;
   }
-  if(!leaderboard.length){el.innerHTML='<div class="lb-empty">No scores yet. Be the first! 🏆</div>';return}
   el.innerHTML=leaderboard.map((e,i)=>`
     <div class="lb-row${i<3?' top':''}">
       <div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':'other'}">${i+1}</div>
@@ -1078,6 +1067,8 @@ function renderLeaderboard(){
 function openSubmitModal(){
   document.getElementById('submit-score-val').textContent=score.toLocaleString();
   document.getElementById('submit-name-input').value='';
+  document.getElementById('submit-error').style.display='none';
+  document.getElementById('submit-status').style.display='none';
   openModal('submit-modal');
 }
 
@@ -1093,38 +1084,45 @@ async function submitScore(){
     return;
   }
   btn.disabled=true; btn.textContent='Submitting...';
-  const entry={name,score,date:new Date().toLocaleDateString('id-ID')};
+  const entry={name, score, date:new Date().toLocaleDateString('id-ID')};
   let firebaseOk=false;
-  if(FIREBASE_READY&&lbRef){
+
+  if(FIREBASE_READY && lbRef){
     try{
       await lbRef.push(entry);
-      lbRef.orderByChild('score').once('value',snap=>{
-        const all=[];snap.forEach(c=>all.push({key:c.key,...c.val()}));
+      /* Trim to top 10 — keep only highest scores */
+      lbRef.orderByChild('score').once('value', snap=>{
+        const all=[];
+        snap.forEach(c=>all.push({key:c.key,...c.val()}));
         all.sort((a,b)=>b.score-a.score);
         if(all.length>10) all.slice(10).forEach(e=>lbRef.child(e.key).remove());
       });
       firebaseOk=true;
+      statEl.textContent='✅ Score berhasil disubmit ke leaderboard!';
+      statEl.style.display='block';
     }catch(e){
       console.error('Firebase write error:',e);
-      errEl.textContent='⚠️ Firebase gagal (periksa Database Rules di Firebase Console — set ".write": true). Score disimpan lokal.';
+      errEl.textContent='⚠️ Gagal submit ke Firebase. Pastikan Database Rules sudah diset: ".write": true';
       errEl.style.display='block';
     }
-  }
-  leaderboard=[...leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,10);
-  lss('tap_leaderboard',leaderboard);
-  renderLeaderboard();
-  if(firebaseOk){
-    statEl.textContent='✅ Score berhasil disubmit ke leaderboard!';
+  } else {
+    /* Fallback: local only */
+    leaderboard=[...leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,10);
+    lss('tap_leaderboard',leaderboard);
+    renderLeaderboard();
+    statEl.textContent='✅ Score disimpan secara lokal.';
     statEl.style.display='block';
   }
+
   setTimeout(()=>{
     score=0;taps=0;combo=1;energy=MAX_E;lightningFired.clear();
     submitBtn.style.display='none';nextLight.style.display='none';comboBadge.style.display='none';
     btn.disabled=false; btn.textContent='Submit & Reset Score';
     closeModal('submit-modal');updateUI();
-  }, firebaseOk?1200:2800);
+  }, firebaseOk ? 1200 : 2800);
 }
 
+/* Render initial leaderboard from localStorage while Firebase loads */
 renderLeaderboard();
 
 /* =========================================================
