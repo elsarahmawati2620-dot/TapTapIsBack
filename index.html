@@ -213,6 +213,11 @@
     @keyframes lb-shine-bronze{0%,100%{box-shadow:inset 0 0 20px rgba(180,83,9,.05)}50%{box-shadow:inset 0 0 30px rgba(180,83,9,.12)}}
     @keyframes crown-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
     @keyframes sparkle-spin{0%{transform:translateY(-50%) rotate(0deg);opacity:.8}50%{opacity:1}100%{transform:translateY(-50%) rotate(360deg);opacity:.8}}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .lb-refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;font-size:.7rem;font-weight:700;color:#38bdf8;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);cursor:pointer;transition:all .2s;letter-spacing:.05em}
+    .lb-refresh-btn:hover{background:rgba(56,189,248,.2);border-color:rgba(56,189,248,.5);transform:scale(1.04)}
+    .lb-refresh-btn:active{transform:scale(.96)}
+    .lb-refresh-btn.spinning svg{animation:spin .7s linear infinite}
   </style>
 </head>
 <body>
@@ -393,10 +398,25 @@
     <div class="section-badge">Leaderboard</div>
     <h2>Top <span class="hl">Tappers</span></h2>
     <p class="desc" style="margin:0 auto">Submit your score and compete globally for the #1 spot!</p>
-    <div id="lb-live-indicator" style="margin-top:12px;display:none">
-      <span class="lb-live-badge"><span class="lb-live-dot"></span> LIVE — Updates in real-time</span>
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+      <div id="lb-live-indicator" style="display:none">
+        <span class="lb-live-badge"><span class="lb-live-dot"></span> LIVE — Real-time Firebase</span>
+      </div>
+      <div id="lb-offline-indicator" style="display:none">
+        <span class="lb-live-badge" style="color:#fbbf24"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fbbf24;box-shadow:0 0 6px #fbbf24;margin-right:6px;vertical-align:middle"></span> Local only</span>
+      </div>
+      <div id="lb-error-indicator" style="display:none">
+        <span style="font-size:.65rem;color:#ef4444;font-weight:700;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);padding:3px 10px;border-radius:999px">⚠️ Firebase Rules belum diset</span>
+      </div>
+      <button onclick="refreshLeaderboard()" id="lb-refresh-btn" class="lb-refresh-btn" title="Refresh leaderboard">
+        <svg id="lb-refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
     </div>
-    <div class="lb-table" id="lb-table"><div class="lb-empty">Loading leaderboard...</div></div>
+    <div id="lb-firebase-hint" style="display:none;margin-top:10px;padding:10px 16px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:12px;font-size:.75rem;color:rgba(253,230,138,.8);line-height:1.6;max-width:480px;margin-left:auto;margin-right:auto;margin-top:10px">
+      ⚠️ <strong>Firebase belum aktif.</strong> Pergi ke <strong>Firebase Console → Realtime Database → Rules</strong> dan set: <code style="background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px">".write": true, ".read": true</code>
+    </div>
+    <div class="lb-table" id="lb-table"><div class="lb-empty">⏳ Memuat leaderboard...</div></div>
   </div>
 </section>
 
@@ -1034,11 +1054,12 @@ const FIREBASE_CONFIG = {
 };
 
 /* =========================================================
-   LEADERBOARD — Firebase Realtime Database, real-time listener
-   Max 6 entries, permanent storage, top 3 effects
+   LEADERBOARD — Firebase Realtime Database
+   Max 6 entries · permanent cloud storage · top 3 effects
    ========================================================= */
 let db = null;
 let lbRef = null;
+let firebaseConnected = false;  /* true once Firebase read succeeds */
 
 const FIREBASE_READY = (
   FIREBASE_CONFIG.apiKey &&
@@ -1047,57 +1068,36 @@ const FIREBASE_READY = (
   !FIREBASE_CONFIG.apiKey.includes('YOUR_')
 );
 
-(function initFirebase(){
-  if(!FIREBASE_READY) return;
-  try{
-    if(!firebase.apps.length){
-      firebase.initializeApp(FIREBASE_CONFIG);
-    }
-    db = firebase.database();
-    lbRef = db.ref('leaderboard');
+/* ------ UI helpers ------ */
+function setLbStatus(status){
+  /* status: 'live' | 'offline' | 'error' | 'loading' */
+  document.getElementById('lb-live-indicator').style.display    = status==='live'    ? 'block' : 'none';
+  document.getElementById('lb-offline-indicator').style.display = status==='offline' ? 'block' : 'none';
+  document.getElementById('lb-error-indicator').style.display   = status==='error'   ? 'block' : 'none';
+  document.getElementById('lb-firebase-hint').style.display     = status==='error'   ? 'block' : 'none';
+}
 
-    /* Real-time listener — updates leaderboard instantly when anyone submits */
-    lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).on('value', snap=>{
-      const rows=[];
-      snap.forEach(child=>rows.push(child.val()));
-      leaderboard = rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
-      lss('tap_leaderboard', leaderboard);
-      renderLeaderboard();
-      /* Show live indicator */
-      const liveEl = document.getElementById('lb-live-indicator');
-      if(liveEl) liveEl.style.display = 'block';
-    }, err=>{
-      console.warn('Firebase listener error:', err);
-      renderLeaderboard();
-    });
-  }catch(e){
-    console.warn('Firebase init error:', e);
-    renderLeaderboard();
-  }
-})();
-
+/* ------ Render ------ */
 function renderLeaderboard(){
-  const el=document.getElementById('lb-table');
+  const el = document.getElementById('lb-table');
   const entries = leaderboard.slice(0, MAX_LB_ENTRIES);
   if(!entries.length){
-    el.innerHTML='<div class="lb-empty">No scores yet. Be the first! 🏆</div>';
+    el.innerHTML='<div class="lb-empty">Belum ada score. Jadilah yang pertama! 🏆</div>';
     return;
   }
-
-  const rankClass   = ['gold','silver','bronze'];
-  const rankLabel   = ['rank-1','rank-2','rank-3'];
-  const crownEmoji  = ['👑','🥈','🥉'];
-  const scoreClass  = ['first','second','third'];
-  const sparkles    = ['✨','⭐','🌟'];
-
+  const rankClass  = ['gold','silver','bronze'];
+  const rankLabel  = ['rank-1','rank-2','rank-3'];
+  const crownEmoji = ['👑','🥈','🥉'];
+  const scoreClass = ['first','second','third'];
+  const sparkles   = ['✨','⭐','🌟'];
   el.innerHTML = entries.map((e,i)=>{
     const isTop3 = i < 3;
-    const rowClass = isTop3 ? `lb-row ${rankLabel[i]}` : 'lb-row';
+    const rowClass        = isTop3 ? `lb-row ${rankLabel[i]}` : 'lb-row';
     const rankBubbleClass = isTop3 ? rankClass[i] : 'other';
-    const scoreCls = isTop3 ? scoreClass[i] : '';
-    const crown = isTop3 ? `<span class="lb-crown">${crownEmoji[i]}</span>` : '';
-    const spark = isTop3 ? `<div class="lb-sparkles">${sparkles[i]}</div>` : '';
-    const nameClass = i === 0 ? 'lb-name lb-name-rank1' : 'lb-name';
+    const scoreCls        = isTop3 ? scoreClass[i] : '';
+    const crown           = isTop3 ? `<span class="lb-crown">${crownEmoji[i]}</span>` : '';
+    const spark           = isTop3 ? `<div class="lb-sparkles">${sparkles[i]}</div>` : '';
+    const nameClass       = i===0  ? 'lb-name lb-name-rank1' : 'lb-name';
     return `
       <div class="${rowClass}">
         ${spark}
@@ -1107,82 +1107,149 @@ function renderLeaderboard(){
           <div class="lb-date">${e.date||''}</div>
         </div>
         <div class="lb-score ${scoreCls}">${Number(e.score).toLocaleString()} <span>$TAP</span></div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
+/* ------ Manual refresh button ------ */
+function refreshLeaderboard(){
+  const btn = document.getElementById('lb-refresh-btn');
+  btn.classList.add('spinning');
+  if(firebaseConnected && lbRef){
+    lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).once('value', snap=>{
+      const rows=[];
+      snap.forEach(child=>rows.push(child.val()));
+      leaderboard = rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+      lss('tap_leaderboard', leaderboard);
+      renderLeaderboard();
+      btn.classList.remove('spinning');
+    }, ()=>{ btn.classList.remove('spinning'); });
+  } else {
+    /* Fallback: re-render from localStorage */
+    leaderboard = ls('tap_leaderboard', []);
+    renderLeaderboard();
+    setTimeout(()=>btn.classList.remove('spinning'), 600);
+  }
+}
+
+/* ------ Firebase init ------ */
+(function initFirebase(){
+  if(!FIREBASE_READY){ setLbStatus('offline'); renderLeaderboard(); return; }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db    = firebase.database();
+    lbRef = db.ref('leaderboard');
+
+    /* Real-time listener */
+    lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).on('value', snap=>{
+      const rows=[];
+      snap.forEach(child=>rows.push(child.val()));
+      leaderboard = rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+      lss('tap_leaderboard', leaderboard);
+      firebaseConnected = true;
+      setLbStatus('live');
+      renderLeaderboard();
+    }, err=>{
+      console.warn('Firebase read error:', err);
+      /* Permission denied → Firebase Rules not set */
+      if(err.code === 'PERMISSION_DENIED') setLbStatus('error');
+      else setLbStatus('offline');
+      renderLeaderboard();
+    });
+  }catch(e){
+    console.warn('Firebase init error:', e);
+    setLbStatus('offline');
+    renderLeaderboard();
+  }
+})();
+
+/* ------ Submit score ------ */
 function openSubmitModal(){
-  document.getElementById('submit-score-val').textContent=score.toLocaleString();
-  document.getElementById('submit-name-input').value='';
-  document.getElementById('submit-error').style.display='none';
-  document.getElementById('submit-status').style.display='none';
+  document.getElementById('submit-score-val').textContent = score.toLocaleString();
+  document.getElementById('submit-name-input').value = '';
+  document.getElementById('submit-error').style.display  = 'none';
+  document.getElementById('submit-status').style.display = 'none';
   openModal('submit-modal');
 }
 
 async function submitScore(){
-  const name=document.getElementById('submit-name-input').value.trim();
-  const errEl=document.getElementById('submit-error');
-  const statEl=document.getElementById('submit-status');
-  const btn=document.getElementById('submit-do-btn');
+  const name   = document.getElementById('submit-name-input').value.trim();
+  const errEl  = document.getElementById('submit-error');
+  const statEl = document.getElementById('submit-status');
+  const btn    = document.getElementById('submit-do-btn');
   errEl.style.display='none'; statEl.style.display='none';
+
   if(!name){
     errEl.textContent='⚠️ Masukkan nama / alias kamu dulu!';
     errEl.style.display='block';
     return;
   }
-  btn.disabled=true; btn.textContent='Submitting...';
-  const entry={name, score, date:new Date().toLocaleDateString('id-ID')};
-  let firebaseOk=false;
 
+  btn.disabled=true; btn.textContent='Submitting...';
+  const entry = { name, score, date: new Date().toLocaleDateString('id-ID') };
+  let firebaseOk = false;
+
+  /* --- 1. Save to localStorage FIRST (always, immediately) --- */
+  const mergedLocal = [...leaderboard, entry]
+    .sort((a,b)=>b.score-a.score)
+    .slice(0, MAX_LB_ENTRIES);
+  leaderboard = mergedLocal;
+  lss('tap_leaderboard', leaderboard);
+  renderLeaderboard();
+
+  /* --- 2. Try Firebase cloud save --- */
   if(FIREBASE_READY && lbRef){
     try{
       await lbRef.push(entry);
 
-      /* Trim Firebase to keep only the top MAX_LB_ENTRIES scores */
+      /* Trim cloud to top MAX_LB_ENTRIES only */
       lbRef.orderByChild('score').once('value', snap=>{
         const all=[];
         snap.forEach(c=>all.push({key:c.key,...c.val()}));
         all.sort((a,b)=>b.score-a.score);
-        /* Remove entries beyond the max allowed rank */
         if(all.length > MAX_LB_ENTRIES){
-          all.slice(MAX_LB_ENTRIES).forEach(e=>lbRef.child(e.key).remove());
+          all.slice(MAX_LB_ENTRIES).forEach(r=>lbRef.child(r.key).remove());
         }
       });
 
-      firebaseOk=true;
-      statEl.textContent='✅ Score berhasil disubmit ke leaderboard!';
-      statEl.style.display='block';
+      firebaseOk = true;
+      firebaseConnected = true;
+      setLbStatus('live');
+      statEl.textContent = '✅ Score tersimpan permanen di cloud!';
+      statEl.style.display = 'block';
     }catch(e){
-      console.error('Firebase write error:',e);
-      errEl.textContent='⚠️ Gagal submit ke Firebase. Pastikan Database Rules sudah diset: ".write": true';
-      errEl.style.display='block';
+      console.error('Firebase write error:', e);
+      if(e.code==='PERMISSION_DENIED'){
+        setLbStatus('error');
+        errEl.textContent = '⚠️ Firebase Rules belum diset. Score disimpan lokal saja.';
+      } else {
+        setLbStatus('offline');
+        errEl.textContent = '⚠️ Tidak bisa reach Firebase. Score disimpan lokal saja.';
+      }
+      errEl.style.display = 'block';
     }
+  } else {
+    setLbStatus('offline');
+    statEl.textContent = '✅ Score disimpan lokal di browser ini.';
+    statEl.style.display = 'block';
   }
 
-  /* Always save to localStorage as permanent backup */
-  const merged = [...leaderboard, entry]
-    .sort((a,b)=>b.score-a.score)
-    .slice(0, MAX_LB_ENTRIES);
-  leaderboard = merged;
-  lss('tap_leaderboard', leaderboard);
-  renderLeaderboard();
-
-  if(!FIREBASE_READY || !lbRef){
-    statEl.textContent='✅ Score disimpan secara lokal.';
-    statEl.style.display='block';
-  }
-
+  /* --- 3. Reset game setelah delay --- */
   setTimeout(()=>{
-    score=0;taps=0;combo=1;energy=MAX_E;lightningFired.clear();
-    submitBtn.style.display='none';nextLight.style.display='none';comboBadge.style.display='none';
-    btn.disabled=false; btn.textContent='Submit & Reset Score';
-    closeModal('submit-modal');updateUI();
-  }, firebaseOk ? 1200 : 2000);
+    score=0; taps=0; combo=1; energy=MAX_E; lightningFired.clear();
+    submitBtn.style.display='none';
+    nextLight.style.display='none';
+    comboBadge.style.display='none';
+    btn.disabled=false;
+    btn.textContent='Submit & Reset Score';
+    closeModal('submit-modal');
+    updateUI();
+  }, firebaseOk ? 1200 : 2200);
 }
 
-/* Render initial leaderboard from localStorage while Firebase loads */
+/* Render dari localStorage dulu sambil tunggu Firebase */
 renderLeaderboard();
+if(!FIREBASE_READY) setLbStatus('offline');
 
 /* =========================================================
    TON CONNECT
