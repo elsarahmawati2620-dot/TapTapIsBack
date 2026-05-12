@@ -1138,22 +1138,36 @@ function mergeLeaderboards(a, b){
   return Object.values(map).sort((x,y)=>y.score-x.score).slice(0, MAX_LB_ENTRIES);
 }
 
+/* ------ Ambil top-N dari snapshot Firebase (sort numerik) ------ */
+function rowsFromSnap(snap){
+  const rows = [];
+  snap.forEach(child=>{
+    const v = child.val();
+    if(v && v.name && v.score != null){
+      rows.push({ name: v.name, score: Number(v.score), date: v.date||'' });
+    }
+  });
+  return rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+}
+
 /* ------ Manual refresh button ------ */
 function refreshLeaderboard(){
   const btn = document.getElementById('lb-refresh-btn');
   btn.classList.add('spinning');
-  if(firebaseConnected && lbRef){
-    lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).once('value', snap=>{
-      const firebaseRows=[];
-      snap.forEach(child=>firebaseRows.push(child.val()));
-      /* MERGE Firebase + localStorage — jangan timpa, gabungkan */
-      const localRows = ls('tap_leaderboard', []);
-      leaderboard = mergeLeaderboards(firebaseRows, localRows);
-      lss('tap_leaderboard', leaderboard);
+  if(lbRef){
+    /* Ambil lebih banyak agar sort numerik kita sendiri bisa benar */
+    lbRef.orderByChild('score').limitToLast(100).once('value', snap=>{
+      const rows = rowsFromSnap(snap);
+      if(rows.length > 0){
+        leaderboard = rows;
+        lss('tap_leaderboard', leaderboard);
+      } else {
+        /* Firebase kosong — pakai localStorage */
+        leaderboard = ls('tap_leaderboard', []);
+      }
       renderLeaderboard();
       btn.classList.remove('spinning');
     }, ()=>{
-      /* Jika gagal baca Firebase, tetap pakai localStorage */
       leaderboard = ls('tap_leaderboard', []);
       renderLeaderboard();
       btn.classList.remove('spinning');
@@ -1173,27 +1187,30 @@ function refreshLeaderboard(){
     db    = firebase.database();
     lbRef = db.ref('leaderboard');
 
-    /* Real-time listener */
-    lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).on('value', snap=>{
-      const firebaseRows=[];
-      snap.forEach(child=>firebaseRows.push(child.val()));
-      /* MERGE dengan localStorage — jangan timpa data lokal yang ada */
-      const localRows = ls('tap_leaderboard', []);
-      leaderboard = mergeLeaderboards(firebaseRows, localRows);
-      lss('tap_leaderboard', leaderboard);
+    /* Real-time listener — ambil 100 lalu sort numerik sendiri */
+    lbRef.orderByChild('score').limitToLast(100).on('value', snap=>{
+      const rows = rowsFromSnap(snap);
+      if(rows.length > 0){
+        leaderboard = rows;
+        lss('tap_leaderboard', leaderboard);
+      } else if(!firebaseConnected){
+        /* Pertama kali connect tapi Firebase kosong — pakai localStorage */
+        leaderboard = ls('tap_leaderboard', []);
+      }
       firebaseConnected = true;
       setLbStatus('live');
       renderLeaderboard();
     }, err=>{
       console.warn('Firebase read error:', err);
-      /* Permission denied → Firebase Rules not set */
       if(err.code === 'PERMISSION_DENIED') setLbStatus('error');
       else setLbStatus('offline');
+      leaderboard = ls('tap_leaderboard', []);
       renderLeaderboard();
     });
   }catch(e){
     console.warn('Firebase init error:', e);
     setLbStatus('offline');
+    leaderboard = ls('tap_leaderboard', []);
     renderLeaderboard();
   }
 })();
@@ -1221,7 +1238,7 @@ async function submitScore(){
   }
 
   btn.disabled=true; btn.textContent='Submitting...';
-  const entry = { name, score, date: new Date().toLocaleDateString('id-ID') };
+  const entry = { name, score: Number(score), date: new Date().toLocaleDateString('id-ID') };
   let firebaseOk = false;
 
   /* --- 1. Save to localStorage FIRST (always, immediately) --- */
