@@ -1081,34 +1081,50 @@ function setLbStatus(status){
 function renderLeaderboard(){
   const el = document.getElementById('lb-table');
   const entries = leaderboard.slice(0, MAX_LB_ENTRIES);
-  if(!entries.length){
-    el.innerHTML='<div class="lb-empty">Belum ada score. Jadilah yang pertama! 🏆</div>';
-    return;
-  }
+
   const rankClass  = ['gold','silver','bronze'];
   const rankLabel  = ['rank-1','rank-2','rank-3'];
   const crownEmoji = ['👑','🥈','🥉'];
   const scoreClass = ['first','second','third'];
   const sparkles   = ['✨','⭐','🌟'];
-  el.innerHTML = entries.map((e,i)=>{
+
+  /* Always render all 6 slots — empty ones show placeholder */
+  let html = '';
+  for(let i = 0; i < MAX_LB_ENTRIES; i++){
+    const e      = entries[i];
     const isTop3 = i < 3;
-    const rowClass        = isTop3 ? `lb-row ${rankLabel[i]}` : 'lb-row';
     const rankBubbleClass = isTop3 ? rankClass[i] : 'other';
-    const scoreCls        = isTop3 ? scoreClass[i] : '';
-    const crown           = isTop3 ? `<span class="lb-crown">${crownEmoji[i]}</span>` : '';
-    const spark           = isTop3 ? `<div class="lb-sparkles">${sparkles[i]}</div>` : '';
-    const nameClass       = i===0  ? 'lb-name lb-name-rank1' : 'lb-name';
-    return `
-      <div class="${rowClass}">
-        ${spark}
-        <div class="lb-rank ${rankBubbleClass}">${i+1}</div>
-        <div style="flex:1;text-align:left">
-          <div class="${nameClass}">${crown}${e.name}</div>
-          <div class="lb-date">${e.date||''}</div>
-        </div>
-        <div class="lb-score ${scoreCls}">${Number(e.score).toLocaleString()} <span>$TAP</span></div>
-      </div>`;
-  }).join('');
+
+    if(e){
+      /* Filled slot */
+      const rowClass  = isTop3 ? `lb-row ${rankLabel[i]}` : 'lb-row';
+      const scoreCls  = isTop3 ? scoreClass[i] : '';
+      const crown     = isTop3 ? `<span class="lb-crown">${crownEmoji[i]}</span>` : '';
+      const spark     = isTop3 ? `<div class="lb-sparkles">${sparkles[i]}</div>` : '';
+      const nameClass = i===0  ? 'lb-name lb-name-rank1' : 'lb-name';
+      html += `
+        <div class="${rowClass}">
+          ${spark}
+          <div class="lb-rank ${rankBubbleClass}">${i+1}</div>
+          <div style="flex:1;text-align:left">
+            <div class="${nameClass}">${crown}${e.name}</div>
+            <div class="lb-date">${e.date||''}</div>
+          </div>
+          <div class="lb-score ${scoreCls}">${Number(e.score).toLocaleString()} <span>$TAP</span></div>
+        </div>`;
+    } else {
+      /* Empty slot */
+      html += `
+        <div class="lb-row lb-row-empty">
+          <div class="lb-rank ${rankBubbleClass}" style="opacity:.35">${i+1}</div>
+          <div style="flex:1;text-align:left">
+            <div class="lb-name" style="color:rgba(56,189,248,.25);font-style:italic">— waiting for challenger —</div>
+          </div>
+          <div class="lb-score" style="color:rgba(56,189,248,.2);font-size:.85rem">0 <span>$TAP</span></div>
+        </div>`;
+    }
+  }
+  el.innerHTML = html;
 }
 
 /* ------ Manual refresh button ------ */
