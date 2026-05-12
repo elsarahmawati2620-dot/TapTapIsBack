@@ -1127,21 +1127,38 @@ function renderLeaderboard(){
   el.innerHTML = html;
 }
 
+/* ------ Merge helper: gabungkan dua array, deduplikasi, sort, slice ------ */
+function mergeLeaderboards(a, b){
+  const map = {};
+  [...a, ...b].forEach(e=>{
+    if(!e || !e.name) return;
+    const key = e.name.toLowerCase().trim();
+    if(!map[key] || e.score > map[key].score) map[key] = e;
+  });
+  return Object.values(map).sort((x,y)=>y.score-x.score).slice(0, MAX_LB_ENTRIES);
+}
+
 /* ------ Manual refresh button ------ */
 function refreshLeaderboard(){
   const btn = document.getElementById('lb-refresh-btn');
   btn.classList.add('spinning');
   if(firebaseConnected && lbRef){
     lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).once('value', snap=>{
-      const rows=[];
-      snap.forEach(child=>rows.push(child.val()));
-      leaderboard = rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+      const firebaseRows=[];
+      snap.forEach(child=>firebaseRows.push(child.val()));
+      /* MERGE Firebase + localStorage — jangan timpa, gabungkan */
+      const localRows = ls('tap_leaderboard', []);
+      leaderboard = mergeLeaderboards(firebaseRows, localRows);
       lss('tap_leaderboard', leaderboard);
       renderLeaderboard();
       btn.classList.remove('spinning');
-    }, ()=>{ btn.classList.remove('spinning'); });
+    }, ()=>{
+      /* Jika gagal baca Firebase, tetap pakai localStorage */
+      leaderboard = ls('tap_leaderboard', []);
+      renderLeaderboard();
+      btn.classList.remove('spinning');
+    });
   } else {
-    /* Fallback: re-render from localStorage */
     leaderboard = ls('tap_leaderboard', []);
     renderLeaderboard();
     setTimeout(()=>btn.classList.remove('spinning'), 600);
@@ -1158,9 +1175,11 @@ function refreshLeaderboard(){
 
     /* Real-time listener */
     lbRef.orderByChild('score').limitToLast(MAX_LB_ENTRIES).on('value', snap=>{
-      const rows=[];
-      snap.forEach(child=>rows.push(child.val()));
-      leaderboard = rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+      const firebaseRows=[];
+      snap.forEach(child=>firebaseRows.push(child.val()));
+      /* MERGE dengan localStorage — jangan timpa data lokal yang ada */
+      const localRows = ls('tap_leaderboard', []);
+      leaderboard = mergeLeaderboards(firebaseRows, localRows);
       lss('tap_leaderboard', leaderboard);
       firebaseConnected = true;
       setLbStatus('live');
