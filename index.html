@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TapTapIsBack — $TAP | TON Memecoin</title>
+  <meta name="description" content="TapTapIsBack ($TAP) — The most addictive memecoin on TON. Tap your way to the moon." />
+  <link rel="icon" href="https://i.imgur.com/IWK2yHm.png" type="image/png" />
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--sky:#38bdf8;--sky-faint:rgba(56,189,248,0.15);--bg:#020f1f;--card:rgba(3,25,50,0.75)}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#020f1f 0%,#021627 40%,#031a30 100%);color:#e0f2fe;min-height:100vh;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    button{cursor:pointer;font-family:inherit}
+    input{font-family:inherit}
+    #particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+    #lightning-overlay{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;display:none}
+    #lightning-flash{position:absolute;inset:0;background:rgba(56,189,248,0.15)}
+    #lightning-svg{position:absolute;inset:0;width:100%;height:100%}
+    #lightning-text{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:clamp(2rem,8vw,4rem);font-weight:900;letter-spacing:.08em;color:#fff;text-shadow:0 0 20px #38bdf8,0 0 40px #38bdf8,0 0 80px rgba(56,189,248,.8);line-height:1.1}
+    #lightning-text small{display:block;font-size:clamp(.9rem,2.5vw,1.3rem);color:#7dd3fc;margin-top:8px;letter-spacing:.15em;text-shadow:0 0 12px rgba(56,189,248,.9)}
+    .modal-bg{position:fixed;inset:0;z-index:8000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,15,31,.85);backdrop-filter:blur(8px)}
+    .modal-bg.open{display:flex}
+    .modal-box{background:rgba(3,25,50,.98);border:1px solid rgba(56,189,248,.3);border-radius:24px;padding:28px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;animation:modal-in .2s ease-out}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .modal-title{font-weight:900;font-size:1.1rem;color:#38bdf8}
+    .modal-close{background:none;border:none;color:rgba(56,189,248,.5);font-size:1.5rem;line-height:1;padding:0}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(2,15,31,.88);backdrop-filter:blur(20px);border-bottom:1px solid rgba(56,189,248,.15)}
+    .nav-brand{display:flex;align-items:center;gap:10px}
+    .nav-brand img{width:34px;height:34px;border-radius:50%;filter:drop-shadow(0 0 8px rgba(56,189,248,.7))}
+    .nav-brand span{font-weight:900;font-size:1.1rem;color:#38bdf8;letter-spacing:.05em}
+    .nav-links{display:flex;gap:8px;align-items:center}
+    .nav-icon-btn{display:flex;align-items:center;padding:7px 10px;border-radius:10px;color:#38bdf8;background:var(--sky-faint);border:1px solid rgba(56,189,248,.25)}
+    .wallet-btn{padding:7px 14px;border-radius:10px;font-size:.8rem;font-weight:700;color:#fff;background:linear-gradient(135deg,#0284c7,#38bdf8);border:none}
+    .wallet-connected{padding:7px 14px;border-radius:10px;font-size:.75rem;font-weight:700;color:#38bdf8;background:var(--sky-faint);border:1px solid rgba(56,189,248,.3)}
+    .tip-btn{padding:7px 12px;border-radius:10px;font-size:.75rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3)}
+    .ambient{position:fixed;top:0;left:0;right:0;height:60vh;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(56,189,248,.07) 0%,transparent 70%)}
+    section{position:relative;z-index:10;padding:80px 20px}
+    .section-inner{max-width:900px;margin:0 auto}
+    .section-badge{display:inline-flex;padding:5px 14px;border-radius:999px;margin-bottom:16px;font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:var(--sky-faint);border:1px solid rgba(56,189,248,.3);color:#38bdf8}
+    h2{font-size:clamp(1.8rem,5vw,3rem);font-weight:900;line-height:1.15;margin-bottom:12px}
+    .hl{color:#38bdf8}
+    .desc{color:rgba(186,230,253,.6);font-size:1rem;line-height:1.7;max-width:560px}
+    .card{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:20px}
+    .hero{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:80px 20px 40px;text-align:center}
+    .coin-img{width:200px;height:200px;filter:drop-shadow(0 0 30px rgba(56,189,248,.8)) drop-shadow(0 0 60px rgba(56,189,248,.35));animation:float-coin 3s ease-in-out infinite}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;margin-bottom:16px;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--sky-faint);border:1px solid rgba(56,189,248,.35);color:#38bdf8}
+    .badge-dot{width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:pulse-dot 1.5s ease-in-out infinite}
+    h1{font-size:clamp(2.8rem,9vw,5.5rem);font-weight:900;line-height:1;margin-bottom:16px;letter-spacing:-.02em}
+    .shimmer{background:linear-gradient(90deg,#38bdf8,#7dd3fc,#fff,#7dd3fc,#38bdf8);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 3s linear infinite}
+    .ticker{font-size:1.8rem;font-weight:900;color:#38bdf8;letter-spacing:.15em;margin-bottom:20px}
+    .hero-desc{color:rgba(186,230,253,.65);font-size:1rem;max-width:500px;line-height:1.7;margin-bottom:32px}
+    .hero-desc strong{color:#7dd3fc}
+    .btn-row{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-bottom:32px}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:16px;font-weight:900;font-size:1rem;color:#fff;background:linear-gradient(135deg,#0284c7,#38bdf8);box-shadow:0 0 25px rgba(56,189,248,.45);border:none;cursor:pointer;transition:transform .15s}
+    .btn-primary:hover{transform:scale(1.04)}
+    .btn-primary:active{transform:scale(.96)}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:16px;font-weight:900;font-size:1rem;color:#38bdf8;background:var(--sky-faint);border:2px solid rgba(56,189,248,.4);cursor:pointer;transition:transform .15s}
+    .btn-secondary:hover{transform:scale(1.04)}
+    .contract-box{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.25);border-radius:16px;padding:14px 28px;display:inline-block}
+    .contract-label{font-size:.65rem;color:rgba(56,189,248,.55);text-transform:uppercase;letter-spacing:.15em;font-weight:700;margin-bottom:4px}
+    .game-card{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:28px;padding:36px 28px;max-width:420px;margin:36px auto 0}
+    .score-display{font-size:3rem;font-weight:900;margin-bottom:4px}
+    .score-label{color:rgba(56,189,248,.6);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+    .skin-bonus-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:999px;font-size:.7rem;font-weight:800;margin-bottom:12px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
+    .skin-bonus-badge.hidden{display:none}
+    .combo-badge{display:none;padding:4px 14px;border-radius:999px;font-size:.8rem;font-weight:800;color:#38bdf8;background:rgba(14,165,233,.15);border:1px solid rgba(56,189,248,.35);margin-bottom:12px}
+    .tap-area{position:relative;width:220px;height:220px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+    .tap-coin{width:210px;height:210px;cursor:pointer;filter:drop-shadow(0 0 20px rgba(56,189,248,.6)) drop-shadow(0 0 40px rgba(56,189,248,.3));user-select:none;-webkit-user-select:none;touch-action:manipulation;transform-origin:center}
+    .tap-coin.pressed{transform:scale(.87)}
+    .tap-coin.shaking{animation:tap-shake .2s ease-in-out}
+    .tap-coin.lightning-glow{filter:drop-shadow(0 0 60px rgba(255,255,255,1)) drop-shadow(0 0 100px rgba(56,189,248,1)) brightness(2)!important}
+    .energy-row{display:flex;justify-content:space-between;font-size:.75rem;font-weight:700;margin-bottom:8px}
+    .energy-bar-bg{height:10px;border-radius:999px;background:rgba(14,165,233,.1);border:1px solid rgba(56,189,248,.2);overflow:hidden;margin-bottom:8px}
+    .energy-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#0284c7,#38bdf8,#7dd3fc);box-shadow:0 0 10px rgba(56,189,248,.55);transition:width .3s ease}
+    .energy-hint{font-size:.7rem;color:rgba(56,189,248,.45);text-align:center;margin-bottom:12px}
+    .game-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:rgba(14,165,233,.07);border:1px solid rgba(56,189,248,.12);border-radius:14px;padding:12px;margin-bottom:16px}
+    .stat-item{text-align:center}
+    .stat-value{font-size:1.1rem;font-weight:900;color:#7dd3fc}
+    .stat-label{font-size:.65rem;color:rgba(56,189,248,.45);text-transform:uppercase;letter-spacing:.08em}
+    .float-label{position:absolute;font-weight:800;font-size:1.4rem;color:#38bdf8;text-shadow:0 0 10px rgba(56,189,248,.9);pointer-events:none;animation:float-up 1s ease-out forwards;z-index:50}
+    .tap-ripple{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(56,189,248,.5) 0%,transparent 70%);animation:ripple-out .5s ease-out forwards}
+    .next-lightning{font-size:.7rem;color:rgba(56,189,248,.5);text-align:center;margin-bottom:10px;display:none}
+    .next-lightning span{color:#fbbf24}
+    .skins-section{max-width:520px;margin:32px auto 0}
+    .skins-title{font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#38bdf8;margin-bottom:16px}
+    .skins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .skin-card{background:var(--card);border:2px solid rgba(56,189,248,.15);border-radius:16px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s;position:relative}
+    .skin-card:hover{border-color:rgba(56,189,248,.35);transform:translateY(-2px)}
+    .skin-card.active{background:rgba(56,189,248,.2);border-color:#38bdf8}
+    .skin-card.locked img{filter:grayscale(60%) brightness(.7)}
+    .skin-img{width:60px;height:60px;border-radius:50%;display:block;margin:0 auto 5px}
+    .skin-name{font-size:.62rem;font-weight:700;color:#7dd3fc;margin-bottom:2px}
+    .skin-utility{font-size:.58rem;font-weight:600;color:rgba(251,191,36,.8);margin-bottom:3px;line-height:1.3}
+    .skin-price{font-size:.62rem;font-weight:700;color:#fbbf24}
+    .skin-price.free{color:rgba(56,189,248,.5)}
+    .skin-price.owned{color:#4ade80}
+    .skin-active-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#38bdf8}
+    .skin-lock-icon{position:absolute;top:5px;left:5px;font-size:.75rem;opacity:.6}
+    .skins-hint{font-size:.7rem;color:rgba(56,189,248,.4);margin-top:10px;text-align:center}
+
+    /* ---- LEADERBOARD ---- */
+    .lb-table{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:24px;overflow:hidden;margin-top:32px}
+    .lb-row{display:flex;align-items:center;gap:16px;padding:16px 24px;position:relative;transition:background .3s}
+    .lb-row:not(:last-child){border-bottom:1px solid rgba(56,189,248,.08)}
+
+    /* TOP 3 SPECIAL ROWS */
+    .lb-row.rank-1{background:linear-gradient(90deg,rgba(251,191,36,.18) 0%,rgba(251,191,36,.07) 50%,transparent 100%);border-left:3px solid #fbbf24;animation:lb-shine-gold 3s ease-in-out infinite}
+    .lb-row.rank-2{background:linear-gradient(90deg,rgba(148,163,184,.14) 0%,rgba(148,163,184,.05) 50%,transparent 100%);border-left:3px solid #94a3b8;animation:lb-shine-silver 3.5s ease-in-out infinite}
+    .lb-row.rank-3{background:linear-gradient(90deg,rgba(180,83,9,.14) 0%,rgba(180,83,9,.05) 50%,transparent 100%);border-left:3px solid #b45309;animation:lb-shine-bronze 4s ease-in-out infinite}
+
+    .lb-rank{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.9rem;color:#fff;flex-shrink:0}
+    .lb-rank.gold{background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 0 18px rgba(251,191,36,.7),0 0 36px rgba(251,191,36,.3)}
+    .lb-rank.silver{background:linear-gradient(135deg,#94a3b8,#64748b);box-shadow:0 0 14px rgba(148,163,184,.6)}
+    .lb-rank.bronze{background:linear-gradient(135deg,#b45309,#92400e);box-shadow:0 0 14px rgba(180,83,9,.5)}
+    .lb-rank.other{background:rgba(56,189,248,.15);color:#38bdf8}
+
+    .lb-crown{font-size:1rem;margin-right:3px;animation:crown-bounce 1.8s ease-in-out infinite}
+
+    .lb-name{flex:1;text-align:left;font-weight:800;color:#e0f2fe}
+    .lb-name-rank1{color:#fde68a;font-size:1.02rem}
+    .lb-date{font-size:.7rem;color:rgba(56,189,248,.4)}
+    .lb-score{font-weight:900;font-size:1.2rem;color:#38bdf8}
+    .lb-score.first{color:#fbbf24;text-shadow:0 0 12px rgba(251,191,36,.6)}
+    .lb-score.second{color:#94a3b8}
+    .lb-score.third{color:#b45309}
+    .lb-score span{font-size:.7rem;font-weight:700}
+
+    .lb-sparkles{position:absolute;right:80px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.7;animation:sparkle-spin 2s linear infinite;pointer-events:none}
+
+    .lb-empty{padding:48px;color:rgba(56,189,248,.4);font-size:1rem;text-align:center}
+    .lb-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:pulse-dot 1.2s ease-in-out infinite;margin-right:6px;vertical-align:middle}
+    .lb-live-badge{display:inline-flex;align-items:center;font-size:.65rem;color:#4ade80;font-weight:700;letter-spacing:.08em;margin-bottom:10px}
+
+    .features-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:40px}
+    @media(min-width:540px){.features-grid{grid-template-columns:1fr 1fr}}
+    .feature-card{background:var(--card);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.2);border-radius:18px;padding:24px}
+    .feature-icon{font-size:2rem;margin-bottom:12px}
+    .feature-title{font-weight:800;font-size:1.05rem;color:#e0f2fe;margin-bottom:8px}
+    .feature-desc{color:rgba(186,230,253,.6);font-size:.88rem;line-height:1.6}
+    .tok-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:40px}
+    .tok-stat-card{background:rgba(3,25,50,.6);border:1px solid rgba(56,189,248,.15);border-radius:14px;padding:20px 18px;text-align:center}
+    .tok-stat-lbl{font-size:.65rem;color:rgba(56,189,248,.5);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:6px}
+    .tok-stat-val{font-size:1.15rem;font-weight:900;color:#7dd3fc}
+    .roadmap-list{display:flex;flex-direction:column;gap:0;margin-top:40px}
+    .rm-row{display:flex;gap:0}
+    .rm-timeline{display:flex;flex-direction:column;align-items:center;margin-right:20px;flex-shrink:0}
+    .rm-dot{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.8rem;color:#fff;background:rgba(56,189,248,.15);border:2px solid rgba(56,189,248,.3)}
+    .rm-dot.done{background:linear-gradient(135deg,#0284c7,#38bdf8);border-color:#38bdf8}
+    .rm-line{width:2px;flex:1;min-height:32px;background:rgba(56,189,248,.15);margin:4px 0}
+    .rm-line.done{background:linear-gradient(180deg,#38bdf8,rgba(56,189,248,.2))}
+    .rm-card{background:var(--card);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.15);border-radius:18px;padding:20px;flex:1;margin-bottom:16px}
+    .rm-card.done{border-color:rgba(56,189,248,.3)}
+    .rm-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+    .rm-phase{font-size:.65rem;font-weight:800;color:#38bdf8;letter-spacing:.1em;text-transform:uppercase;background:rgba(56,189,248,.1);padding:3px 10px;border-radius:999px}
+    .rm-time{font-size:.7rem;color:rgba(56,189,248,.5)}
+    .rm-done-label{font-size:.65rem;color:#4ade80;font-weight:700;margin-left:auto}
+    .rm-title{font-weight:800;font-size:1.05rem;color:#e0f2fe;margin-bottom:8px}
+    .rm-items{list-style:none;display:flex;flex-direction:column;gap:4px}
+    .rm-items li{font-size:.85rem;color:rgba(186,230,253,.6);display:flex;align-items:center;gap:8px}
+    .rm-items li::before{content:'◆';color:#38bdf8;font-size:.7rem;flex-shrink:0}
+    .rm-items li.done-item::before{content:'◆';color:#4ade80}
+    .buy-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:40px 0}
+    .buy-step{background:var(--card);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.2);border-radius:20px;padding:24px;text-align:center}
+    .buy-step-icon{font-size:2rem;margin-bottom:8px}
+    .buy-step-num{font-size:.65rem;font-weight:800;color:rgba(56,189,248,.5);letter-spacing:.15em;margin-bottom:8px}
+    .buy-step-title{font-weight:800;color:#e0f2fe;margin-bottom:8px}
+    .buy-step-desc{font-size:.85rem;color:rgba(186,230,253,.6);line-height:1.6}
+    .contract-section{text-align:center}
+    .big-contract-box{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.3);border-radius:22px;padding:36px 28px;max-width:480px;margin:24px auto 0;box-shadow:0 0 40px rgba(56,189,248,.08)}
+    .wallet-input{width:100%;padding:12px 16px;border-radius:12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.3);color:#e0f2fe;font-size:.9rem;font-weight:600;outline:none;margin-bottom:8px}
+    .btn-outline{display:flex;align-items:center;gap:10px;width:100%;padding:12px 18px;border-radius:12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);color:#e0f2fe;font-weight:700;font-size:.9rem;cursor:pointer;margin-bottom:8px}
+    .btn-outline:hover{background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4)}
+    .btn-golden{display:flex;align-items:center;gap:10px;width:100%;padding:12px 18px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;font-weight:700;font-size:.9rem;cursor:pointer;margin-bottom:8px;justify-content:center}
+    .btn-golden:hover{background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.5)}
+    .btn-green{display:flex;align-items:center;gap:8px;width:100%;padding:12px 18px;border-radius:12px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.35);color:#4ade80;font-weight:700;font-size:.9rem;cursor:pointer;margin-top:12px;justify-content:center}
+    .btn-green:hover{background:rgba(74,222,128,.2)}
+    .tip-amount-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+    .tip-amount-btn{padding:12px 8px;border-radius:12px;background:rgba(251,191,36,.08);border:2px solid rgba(251,191,36,.2);color:#fbbf24;font-weight:800;font-size:.9rem;cursor:pointer;text-align:center;transition:all .2s}
+    .tip-amount-btn:hover,.tip-amount-btn.selected{background:rgba(251,191,36,.18);border-color:#fbbf24}
+    footer{position:relative;z-index:10;padding:36px 20px;text-align:center;border-top:1px solid rgba(56,189,248,.1)}
+    .footer-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
+    .footer-brand img{width:24px;height:24px;border-radius:50%}
+    .footer-brand span{font-weight:900;color:#38bdf8}
+    .footer-disc{color:rgba(56,189,248,.35);font-size:.75rem;max-width:440px;margin:0 auto 14px;line-height:1.6}
+    .footer-links{display:flex;justify-content:center;gap:16px;font-size:.75rem;color:rgba(56,189,248,.45);flex-wrap:wrap}
+    .footer-links a:hover{color:#38bdf8}
+    .footer-copy{color:rgba(56,189,248,.25);font-size:.72rem;margin-top:12px}
+    .tc-wallet-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .tc-wallet-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.18);cursor:pointer;transition:all .18s;color:#e0f2fe;font-weight:700;font-size:.92rem}
+    .tc-wallet-item:hover{background:rgba(56,189,248,.14);border-color:rgba(56,189,248,.38)}
+    .pay-confirm-note{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:12px 14px;font-size:.78rem;color:rgba(74,222,128,.85);margin-top:12px;line-height:1.5;text-align:center}
+
+    @keyframes float-coin{0%,100%{transform:translateY(0) rotate(0deg)}33%{transform:translateY(-14px) rotate(2deg)}66%{transform:translateY(-7px) rotate(-2deg)}}
+    @keyframes shimmer{0%{background-position:0% center}100%{background-position:200% center}}
+    @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes float-up{0%{opacity:1;transform:translateY(0) scale(1.2)}80%{opacity:.8;transform:translateY(-70px) scale(1)}100%{opacity:0;transform:translateY(-90px) scale(.8)}}
+    @keyframes ripple-out{0%{transform:scale(0);opacity:1}100%{transform:scale(3);opacity:0}}
+    @keyframes glow-pulse{0%,100%{filter:drop-shadow(0 0 15px rgba(56,189,248,.55))}50%{filter:drop-shadow(0 0 30px rgba(56,189,248,.95)) drop-shadow(0 0 60px rgba(56,189,248,.5))}}
+    @keyframes tap-shake{0%{transform:scale(.87) rotate(0deg)}20%{transform:scale(.87) rotate(-3deg) translateX(-3px)}40%{transform:scale(.87) rotate(3deg) translateX(3px)}60%{transform:scale(.87) rotate(-2deg) translateX(-2px)}80%{transform:scale(.87) rotate(2deg) translateX(2px)}100%{transform:scale(.87) rotate(0deg)}}
+    @keyframes modal-in{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes lightning-flash{0%{opacity:0}5%{opacity:1}15%{opacity:.3}20%{opacity:.9}30%,100%{opacity:0}}
+    @keyframes lightning-bolt-in{0%{opacity:0;stroke-dashoffset:2000}5%{opacity:1;stroke-dashoffset:0}60%{opacity:1}100%{opacity:0}}
+    @keyframes lightning-text-in{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}10%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}20%{transform:translate(-50%,-50%) scale(1)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
+
+    /* LEADERBOARD TOP 3 ANIMATIONS */
+    @keyframes lb-shine-gold{0%,100%{box-shadow:inset 0 0 30px rgba(251,191,36,.07)}50%{box-shadow:inset 0 0 40px rgba(251,191,36,.18)}}
+    @keyframes lb-shine-silver{0%,100%{box-shadow:inset 0 0 20px rgba(148,163,184,.05)}50%{box-shadow:inset 0 0 30px rgba(148,163,184,.13)}}
+    @keyframes lb-shine-bronze{0%,100%{box-shadow:inset 0 0 20px rgba(180,83,9,.05)}50%{box-shadow:inset 0 0 30px rgba(180,83,9,.12)}}
+    @keyframes crown-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+    @keyframes sparkle-spin{0%{transform:translateY(-50%) rotate(0deg);opacity:.8}50%{opacity:1}100%{transform:translateY(-50%) rotate(360deg);opacity:.8}}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .lb-refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;font-size:.7rem;font-weight:700;color:#38bdf8;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);cursor:pointer;transition:all .2s;letter-spacing:.05em}
+    .lb-refresh-btn:hover{background:rgba(56,189,248,.2);border-color:rgba(56,189,248,.5);transform:scale(1.04)}
+    .lb-refresh-btn:active{transform:scale(.96)}
+    .lb-refresh-btn.spinning svg{animation:spin .7s linear infinite}
+  </style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="ambient"></div>
+
+<div id="lightning-overlay">
+  <div id="lightning-flash"></div>
+  <svg id="lightning-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="glow2"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g id="bolt-group"></g>
+  </svg>
+  <div id="lightning-text">LIGHTNING MODE<small id="lightning-sub">1000 $TAP REACHED!</small></div>
+</div>
+
+<!-- Wallet modal -->
+<div class="modal-bg" id="wallet-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Connect TON Wallet</div>
+      <button class="modal-close" onclick="closeModal('wallet-modal')">&times;</button>
+    </div>
+    <p style="color:rgba(186,230,253,.6);font-size:.88rem;margin-bottom:18px;text-align:center">Choose your TON Mainnet wallet to connect</p>
+    <div class="tc-wallet-list" id="tc-wallet-list"></div>
+    <div style="text-align:center;margin-top:14px;font-size:.68rem;color:rgba(56,189,248,.35)">TON Mainnet · Real wallet connection</div>
+  </div>
+</div>
+
+<!-- Pay modal -->
+<div class="modal-bg" id="pay-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Buy Skin — TON Mainnet</div><button class="modal-close" onclick="closeModal('pay-modal')">&times;</button></div>
+    <div id="pay-modal-body"></div>
+  </div>
+</div>
+
+<!-- Submit modal -->
+<div class="modal-bg" id="submit-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Submit Score 🏆</div><button class="modal-close" onclick="closeModal('submit-modal')">&times;</button></div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div id="submit-score-val" style="font-size:2.5rem;font-weight:900;color:#38bdf8"></div>
+      <div style="font-size:.75rem;color:rgba(56,189,248,.5);text-transform:uppercase;letter-spacing:.1em">$TAP Earned</div>
+    </div>
+    <input id="submit-name-input" maxlength="20" placeholder="Your name / alias" class="wallet-input" />
+    <div id="submit-error" style="display:none;color:#ef4444;font-size:.78rem;text-align:center;margin-bottom:8px;padding:8px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px"></div>
+    <div id="submit-status" style="display:none;color:#4ade80;font-size:.78rem;text-align:center;margin-bottom:8px;padding:8px 12px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:10px"></div>
+    <button id="submit-do-btn" onclick="submitScore()" class="btn-primary" style="width:100%;justify-content:center">Submit &amp; Reset Score</button>
+    <p style="color:rgba(56,189,248,.4);font-size:.72rem;text-align:center;margin-top:8px">Score resets to 0 after submission</p>
+  </div>
+</div>
+
+<!-- Tip to Dev modal -->
+<div class="modal-bg" id="tip-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" style="color:#fbbf24">☕ Tip the Developer</div>
+      <button class="modal-close" onclick="closeModal('tip-modal')">&times;</button>
+    </div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:2.5rem;margin-bottom:10px">🙏</div>
+      <p style="color:rgba(186,230,253,.65);font-size:.9rem;line-height:1.6">If you enjoy TapTapIsBack, consider supporting the developer with a small TON tip!</p>
+    </div>
+    <div style="font-size:.68rem;color:rgba(56,189,248,.5);text-transform:uppercase;letter-spacing:.15em;font-weight:700;margin-bottom:8px;text-align:center">Choose amount</div>
+    <div class="tip-amount-grid">
+      <button class="tip-amount-btn" onclick="selectTipAmount(0.1,this)">0.1 TON</button>
+      <button class="tip-amount-btn selected" onclick="selectTipAmount(0.5,this)">0.5 TON</button>
+      <button class="tip-amount-btn" onclick="selectTipAmount(1,this)">1 TON</button>
+    </div>
+    <div style="background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.15);border-radius:12px;padding:12px;margin-bottom:16px;text-align:center">
+      <div style="font-size:.65rem;color:rgba(56,189,248,.5);margin-bottom:4px">Sending to dev wallet</div>
+      <div style="font-family:monospace;font-size:.78rem;color:#7dd3fc;word-break:break-all">UQD00L94NNmKDs-l7A046yXnBZ5Up7wg55wRSPq5qqN_1Q09</div>
+    </div>
+    <div id="tip-modal-actions"></div>
+  </div>
+</div>
+
+<nav>
+  <div class="nav-brand">
+    <img src="https://i.imgur.com/IWK2yHm.png" alt="TAP" />
+    <span>TapTapIsBack</span>
+  </div>
+  <div class="nav-links">
+    <a href="https://x.com/taptapisback" target="_blank" rel="noopener" class="nav-icon-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a href="https://t.me/tapisback" target="_blank" rel="noopener" class="nav-icon-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+    </a>
+    <button id="tip-nav-btn" class="tip-btn" onclick="openTipModal()">☕ Tip Dev</button>
+    <button id="wallet-nav-btn" class="wallet-btn" onclick="handleWalletBtn()">Connect Wallet</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <img src="https://i.imgur.com/IWK2yHm.png" alt="TapTapIsBack" class="coin-img" style="margin-bottom:24px" />
+  <div class="badge"><div class="badge-dot"></div> Launching on groypfi.io &bull; TON Blockchain</div>
+  <h1 class="shimmer">TapTapIsBack</h1>
+  <div class="ticker">$TAP</div>
+  <p class="hero-desc">The most addictive memecoin on TON. Tap your way to the moon. Every tap counts. Every $TAP matters. <strong>Are you ready?</strong></p>
+  <div class="btn-row">
+    <a href="https://t.me/tapisback" target="_blank" rel="noopener" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 12 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+      Join Telegram
+    </a>
+    <a href="https://x.com/taptapisback" target="_blank" rel="noopener" class="btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      Follow on X
+    </a>
+  </div>
+  <div class="contract-box">
+    <div class="contract-label">Contract Address</div>
+    <div class="shimmer" style="font-size:1.6rem;font-weight:900;letter-spacing:.15em">SOON</div>
+  </div>
+</section>
+
+<!-- BUY $TAP -->
+<section id="buy" style="text-align:center">
+  <div class="section-inner">
+    <div class="section-badge">How to Buy</div>
+    <h2>Buy <span class="hl">$TAP</span></h2>
+    <p class="desc" style="margin:0 auto 0">Get your $TAP tokens in 3 easy steps when we launch on groypfi.io</p>
+    <div class="buy-steps">
+      <div class="buy-step"><div class="buy-step-icon">💳</div><div class="buy-step-num">STEP 01</div><div class="buy-step-title">Get TON</div><div class="buy-step-desc">Buy TON on any exchange — Binance, OKX, Bybit, or directly in Tonkeeper wallet.</div></div>
+      <div class="buy-step"><div class="buy-step-icon">🌐</div><div class="buy-step-num">STEP 02</div><div class="buy-step-title">Go to groypfi.io</div><div class="buy-step-desc">Visit groypfi.io when $TAP launches. Connect your TON wallet securely.</div></div>
+      <div class="buy-step"><div class="buy-step-icon">🚀</div><div class="buy-step-num">STEP 03</div><div class="buy-step-title">Swap for $TAP</div><div class="buy-step-desc">Paste the $TAP contract address, set slippage to 1-3%, and swap!</div></div>
+    </div>
+    <a href="https://groypfi.io" target="_blank" rel="noopener" class="btn-primary" style="font-size:1.1rem;padding:16px 40px">🚀 Buy on groypfi.io</a>
+  </div>
+</section>
+
+<!-- Game -->
+<section id="game" style="text-align:center">
+  <div class="section-inner">
+    <div class="section-badge">Mini Game</div>
+    <h2>Tap. Earn. <span class="hl">Repeat.</span></h2>
+    <p class="desc" style="margin:0 auto">Tap the coin to earn $TAP. Build combos. Hit <strong style="color:#fbbf24">1,000 $TAP</strong> to trigger LIGHTNING MODE!</p>
+    <div style="max-width:420px;margin:28px auto 0;border-radius:20px;overflow:hidden;border:1px solid rgba(56,189,248,.25);box-shadow:0 0 30px rgba(56,189,248,.12)">
+      <video src="https://i.imgur.com/nctAX2z.mp4" autoplay loop muted playsinline style="width:100%;display:block;border-radius:20px"></video>
+    </div>
+    <div class="game-card">
+      <div class="score-display shimmer" id="score">0</div>
+      <div class="score-label">$TAP Earned</div>
+      <div class="skin-bonus-badge hidden" id="skin-bonus-badge">⚡ Bonus Active</div>
+      <div class="combo-badge" id="combo-badge">1x COMBO!</div>
+      <div class="tap-area" id="tap-area">
+        <img src="https://i.imgur.com/IWK2yHm.png" alt="Tap coin" class="tap-coin" id="tap-coin" draggable="false" />
+      </div>
+      <div class="energy-row">
+        <span id="energy-text" style="color:#38bdf8">Energy: 100/100</span>
+        <span id="taps-text" style="color:rgba(56,189,248,.5)">Taps: 0</span>
+      </div>
+      <div class="energy-bar-bg"><div class="energy-bar-fill" id="energy-bar" style="width:100%"></div></div>
+      <div class="energy-hint" id="energy-hint">Tap the coin to earn $TAP!</div>
+      <div class="game-stats">
+        <div class="stat-item"><div class="stat-value" id="stat-taps">0</div><div class="stat-label">Taps</div></div>
+        <div class="stat-item"><div class="stat-value" id="stat-combo">1x</div><div class="stat-label">Combo</div></div>
+        <div class="stat-item"><div class="stat-value" id="stat-avg">0</div><div class="stat-label">Avg/Tap</div></div>
+      </div>
+      <div class="next-lightning" id="next-lightning"></div>
+      <button id="submit-btn" onclick="openSubmitModal()" class="btn-secondary" style="width:100%;justify-content:center;font-size:.85rem;padding:10px 16px;display:none">🏆 Submit Score to Leaderboard</button>
+    </div>
+    <div class="skins-section">
+      <div class="skins-title">🎨 Coin Skins — tap to equip · each skin has a unique power!</div>
+      <div class="skins-grid" id="skins-grid"></div>
+      <div class="skins-hint">Buy skins with real TON to unlock their game-changing powers. Payment is verified before unlocking.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Leaderboard -->
+<section id="leaderboard">
+  <div class="section-inner" style="text-align:center">
+    <div class="section-badge">Leaderboard</div>
+    <h2>Top <span class="hl">Tappers</span></h2>
+    <p class="desc" style="margin:0 auto">Submit your score and compete globally for the #1 spot!</p>
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+      <div id="lb-live-indicator" style="display:none">
+        <span class="lb-live-badge"><span class="lb-live-dot"></span> LIVE — Real-time Firebase</span>
+      </div>
+      <div id="lb-offline-indicator" style="display:none">
+        <span class="lb-live-badge" style="color:#fbbf24"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fbbf24;box-shadow:0 0 6px #fbbf24;margin-right:6px;vertical-align:middle"></span> Local only</span>
+      </div>
+      <div id="lb-error-indicator" style="display:none">
+        <span style="font-size:.65rem;color:#ef4444;font-weight:700;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);padding:3px 10px;border-radius:999px">⚠️ Firebase Rules belum diset</span>
+      </div>
+      <button onclick="refreshLeaderboard()" id="lb-refresh-btn" class="lb-refresh-btn" title="Refresh leaderboard">
+        <svg id="lb-refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="lb-firebase-hint" style="display:none;margin-top:10px;padding:10px 16px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:12px;font-size:.75rem;color:rgba(253,230,138,.8);line-height:1.6;max-width:480px;margin-left:auto;margin-right:auto;margin-top:10px">
+      ⚠️ <strong>Firebase belum aktif.</strong> Pergi ke <strong>Firebase Console → Realtime Database → Rules</strong> dan set: <code style="background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px">".write": true, ".read": true</code>
+    </div>
+    <div class="lb-table" id="lb-table"><div class="lb-empty">⏳ Memuat leaderboard...</div></div>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about">
+  <div class="section-inner">
+    <div class="section-badge">About $TAP</div>
+    <h2>Why <span class="hl">TapTapIsBack</span>?</h2>
+    <p class="desc">The legend returns. TapTapIsBack is the memecoin that the TON ecosystem has been waiting for. Fast, fun, and built for the community.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">TON Blockchain</div><div class="feature-desc">Built on the ultra-fast, low-fee TON network for lightning-fast transactions and minimal costs.</div></div>
+      <div class="feature-card"><div class="feature-icon">🎮</div><div class="feature-title">Tap to Earn</div><div class="feature-desc">An addictive mini-game where every tap earns you $TAP tokens. Play anywhere, anytime, on any device.</div></div>
+      <div class="feature-card"><div class="feature-icon">🚀</div><div class="feature-title">groypfi.io Launch</div><div class="feature-desc">Officially launching on groypfi.io — secure, transparent, and community-first from day one.</div></div>
+      <div class="feature-card"><div class="feature-icon">💎</div><div class="feature-title">Community Driven</div><div class="feature-desc">No VCs. No whales. Pure memecoin energy fueled by the community and for the community.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Tokenomics -->
+<section id="tokenomics">
+  <div class="section-inner" style="text-align:center">
+    <div class="section-badge">Tokenomics</div>
+    <h2>$TAP <span class="hl">Distribution</span></h2>
+    <div style="background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(56,189,248,.2);border-radius:24px;padding:36px;margin-top:40px">
+      <div class="tok-stats" style="margin-top:0">
+        <div class="tok-stat-card"><div class="tok-stat-lbl">Total Supply</div><div class="tok-stat-val">1,000,000,000 $TAP</div></div>
+        <div class="tok-stat-card"><div class="tok-stat-lbl">Network</div><div class="tok-stat-val">TON Blockchain</div></div>
+        <div class="tok-stat-card"><div class="tok-stat-lbl">Buy / Sell Tax</div><div class="tok-stat-val">0 / 0</div></div>
+        <div class="tok-stat-card"><div class="tok-stat-lbl">Launch Platform</div><div class="tok-stat-val">groypfi.io</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Roadmap -->
+<section id="roadmap">
+  <div class="section-inner">
+    <div style="text-align:center">
+      <div class="section-badge">Roadmap</div>
+      <h2>The $TAP <span class="hl">Journey</span></h2>
+      <p class="desc" style="margin:0 auto">Our path to the moon, one tap at a time.</p>
+    </div>
+    <div class="roadmap-list">
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 1</span><span class="rm-time">Q1 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Launch & Community</div><ul class="rm-items"><li class="done-item">Token concept & branding</li><li class="done-item">Twitter & Telegram launch</li><li class="done-item">Community building (5 000+ members)</li><li class="done-item">groypfi.io listing prep</li></ul></div></div>
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 2</span><span class="rm-time">Q2 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Tap Game V1</div><ul class="rm-items"><li class="done-item">Tap-to-earn mini game live</li><li class="done-item">Energy system & combo multipliers</li><li class="done-item">Lightning Mode spectacle</li></ul></div></div>
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot done">✓</div><div class="rm-line done"></div></div><div class="rm-card done"><div class="rm-meta"><span class="rm-phase">Phase 3</span><span class="rm-time">Q3–Q4 2025</span><span class="rm-done-label">COMPLETED ✓</span></div><div class="rm-title">Ecosystem Expansion</div><ul class="rm-items"><li class="done-item">Global leaderboard system</li><li class="done-item">Coin skin shop with unique utilities</li><li class="done-item">TON Connect wallet integration</li><li class="done-item">Community tournaments & giveaways</li></ul></div></div>
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#fbbf24;animation:pulse-dot 1.2s ease-in-out infinite">🔥</div><div class="rm-line" style="background:linear-gradient(180deg,#fbbf24,rgba(251,191,36,.15))"></div></div><div class="rm-card" style="border-color:rgba(251,191,36,.4);background:rgba(40,25,5,.7)"><div class="rm-meta"><span class="rm-phase" style="color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3)">Phase 4</span><span class="rm-time">Q1–Q2 2026</span><span class="rm-done-label" style="color:#fbbf24">IN PROGRESS 🔥</span></div><div class="rm-title" style="color:#fde68a">Moon Mission 🚀</div><ul class="rm-items"><li style="color:rgba(253,230,138,.75)">Token live on groypfi.io</li><li style="color:rgba(253,230,138,.75)">CEX listings (OKX, Bybit negotiations)</li><li style="color:rgba(253,230,138,.75)">$TAP staking rewards</li><li style="color:rgba(253,230,138,.75)">Game V2 — multiplayer tap battles</li><li style="color:rgba(253,230,138,.75)">Influencer partnership campaign</li></ul></div></div>
+      <div class="rm-row"><div class="rm-timeline"><div class="rm-dot">5</div></div><div class="rm-card"><div class="rm-meta"><span class="rm-phase">Phase 5</span><span class="rm-time">Q3–Q4 2026</span></div><div class="rm-title">DAO & Mass Adoption 🌍</div><ul class="rm-items"><li>DAO governance — community votes on future</li><li>$TAP in-game economy & NFT skins</li><li>Cross-chain bridge (ETH / BNB)</li><li>10 000+ holder milestone &amp; celebration airdrop</li></ul></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Contract -->
+<section id="contract" class="contract-section">
+  <div class="section-inner">
+    <div class="section-badge">Contract</div>
+    <h2>Contract <span class="hl">Address</span></h2>
+    <p class="desc" style="margin:0 auto">Our contract will be revealed at launch on groypfi.io. Stay tuned!</p>
+    <div class="big-contract-box">
+      <div style="font-size:.68rem;color:rgba(56,189,248,.5);text-transform:uppercase;letter-spacing:.15em;font-weight:700;margin-bottom:10px">Contract Address</div>
+      <div class="shimmer" style="font-size:clamp(2rem,8vw,3rem);font-weight:900;letter-spacing:.15em">SOON</div>
+      <div style="color:rgba(56,189,248,.45);font-size:.85rem;margin-top:14px">Will be announced at launch on <strong style="color:#7dd3fc">groypfi.io</strong></div>
+    </div>
+  </div>
+</section>
+
+<!-- Join -->
+<section id="community" style="text-align:center">
+  <div class="section-inner">
+    <img src="https://i.imgur.com/IWK2yHm.png" alt="TAP" style="width:90px;height:90px;margin:0 auto 20px;display:block;animation:glow-pulse 2s ease-in-out infinite" />
+    <h2>Join the <span class="hl">Revolution</span></h2>
+    <p class="desc" style="margin:12px auto 0">Be part of the $TAP army. Follow us for the latest updates, airdrops, and alpha.</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:30px">
+      <a href="https://t.me/tapisback" target="_blank" rel="noopener" class="btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+        Join Telegram
+      </a>
+      <a href="https://x.com/taptapisback" target="_blank" rel="noopener" class="btn-secondary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Follow on X
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-brand">
+    <img src="https://i.imgur.com/IWK2yHm.png" alt="TAP" />
+    <span>TapTapIsBack</span>
+    <span style="color:rgba(56,189,248,.55);font-weight:700">$TAP</span>
+  </div>
+  <p class="footer-disc">$TAP is a memecoin for entertainment purposes only. Not financial advice. Crypto investments carry risk. Always DYOR.</p>
+  <div class="footer-links">
+    <a href="https://x.com/taptapisback" target="_blank" rel="noopener">Twitter/X</a>
+    <span>&bull;</span>
+    <a href="https://t.me/tapisback" target="_blank" rel="noopener">Telegram</a>
+    <span>&bull;</span>
+    <span>TON Blockchain</span>
+    <span>&bull;</span>
+    <span>groypfi.io</span>
+    <span>&bull;</span>
+    <button onclick="openTipModal()" style="background:none;border:none;color:rgba(251,191,36,.6);font-size:.75rem;cursor:pointer;font-family:inherit">☕ Tip Dev</button>
+  </div>
+  <div class="footer-copy">&copy; 2025 TapTapIsBack. All rights reserved.</div>
+</footer>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const TREASURY   = 'UQD00L94NNmKDs-l7A046yXnBZ5Up7wg55wRSPq5qqN_1Q09';
+const DEV_WALLET = 'UQD00L94NNmKDs-l7A046yXnBZ5Up7wg55wRSPq5qqN_1Q09';
+const MAX_LB_ENTRIES = 6;
+
+const SKINS = [
+  {
+    id:'default',  name:'Default TAP',  img:'https://i.imgur.com/IWK2yHm.png',
+    price:0, free:true,
+    utility:'Standard gameplay',
+    utilityIcon:'🎮',
+    scoreMultiplier:1, regenMult:1, comboTimeout:1500, maxCombo:10
+  },
+  {
+    id:'golden',   name:'Golden TAP',   img:'https://i.imgur.com/3Wh1uDC.png',
+    price:0.2, free:false,
+    utility:'+25% TAP per tap',
+    utilityIcon:'💰',
+    scoreMultiplier:1.25, regenMult:1, comboTimeout:1500, maxCombo:10
+  },
+  {
+    id:'crystal',  name:'Crystal TAP',  img:'https://i.imgur.com/toK0Fvc.png',
+    price:0.5, free:false,
+    utility:'2× Energy regen speed',
+    utilityIcon:'⚡',
+    scoreMultiplier:1, regenMult:2, comboTimeout:1500, maxCombo:10
+  },
+  {
+    id:'fire',     name:'Fire TAP',     img:'https://i.imgur.com/TcG1J5X.png',
+    price:1.0, free:false,
+    utility:'15× max combo · 3.5s combo window',
+    utilityIcon:'🔥',
+    scoreMultiplier:1, regenMult:1, comboTimeout:3500, maxCombo:15
+  },
+];
+
+const WALLET_LINKS = {
+  Tonkeeper:   (addr,n,c)=>`https://app.tonkeeper.com/transfer/${addr}?amount=${n}&text=${encodeURIComponent(c)}`,
+  MyTonWallet: (addr,n,c)=>`https://mytonwallet.io/send?to=${addr}&amount=${n}&comment=${encodeURIComponent(c)}`,
+  Tonhub:      (addr,n,c)=>`https://tonhub.com/transfer/${addr}?amount=${n}&text=${encodeURIComponent(c)}`,
+};
+
+/* =========================================================
+   SOUND SYSTEM — Web Audio API (no external files needed)
+   ========================================================= */
+let _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx){
+    try{ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+function playSoundTap(combo){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    const freq = Math.min(800, 260 + combo * 35);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.07);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.start(t); osc.stop(t + 0.09);
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const ns = ctx.createBufferSource();
+    ns.buffer = buf;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.06, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    ns.connect(ng); ng.connect(ctx.destination);
+    ns.start(t);
+  }catch(e){}
+}
+
+function playSoundComboMilestone(combo){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    [0, 0.07, 0.14].forEach((delay, i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      const freqs = [523, 659, 784];
+      osc.frequency.setValueAtTime(freqs[i], t + delay);
+      gain.gain.setValueAtTime(0.13, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.18);
+      osc.start(t + delay); osc.stop(t + delay + 0.18);
+    });
+  }catch(e){}
+}
+
+function playSoundComboReset(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(280, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.18);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.start(t); osc.stop(t + 0.18);
+  }catch(e){}
+}
+
+function playSoundNoEnergy(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(120, t);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.start(t); osc.stop(t + 0.12);
+  }catch(e){}
+}
+
+function playSoundLightning(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    const sw = ctx.createOscillator();
+    const sg = ctx.createGain();
+    sw.connect(sg); sg.connect(ctx.destination);
+    sw.type = 'sawtooth';
+    sw.frequency.setValueAtTime(80, t);
+    sw.frequency.exponentialRampToValueAtTime(2400, t + 0.35);
+    sg.gain.setValueAtTime(0.22, t);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+    sw.start(t); sw.stop(t + 0.45);
+    const bufLen = ctx.sampleRate * 0.6;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const bd = buf.getChannelData(0);
+    for(let i=0;i<bufLen;i++) bd[i]=(Math.random()*2-1)*Math.pow(1-i/bufLen,1.5);
+    const ns = ctx.createBufferSource();
+    ns.buffer = buf;
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass'; nf.frequency.value = 160; nf.Q.value = 1.2;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.45, t + 0.05);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+    ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+    ns.start(t + 0.05);
+    [261, 329, 392, 523].forEach((f, i)=>{
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + 0.3);
+      g.gain.linearRampToValueAtTime(0.1, t + 0.32 + i*0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      o.start(t + 0.3); o.stop(t + 0.85);
+    });
+  }catch(e){}
+}
+
+function playSoundUnlock(){
+  try{
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const t = ctx.currentTime;
+    [0,0.08,0.16,0.25].forEach((delay,i)=>{
+      const freqs=[392,523,659,784];
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freqs[i];
+      gain.gain.setValueAtTime(0.12, t+delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.2);
+      osc.start(t+delay); osc.stop(t+delay+0.2);
+    });
+  }catch(e){}
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+function ls(k,d){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}}
+function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+let score=0,taps=0,energy=100,combo=1,comboTimer=null;
+let activeSkin   = ls('tap_skin','default');
+let ownedSkins   = ls('tap_owned_skins',['default']);
+let leaderboard  = ls('tap_leaderboard',[]);
+let walletAddr   = null;
+let pendingSkinId= null;
+let selectedTipAmount = 0.5;
+const lightningFired = new Set();
+const MAX_E=100, E_TAP=5, BASE_E_REGEN=1, E_INT=200;
+
+function activeSkinData(){ return SKINS.find(s=>s.id===activeSkin)||SKINS[0]; }
+
+/* =========================================================
+   DOM
+   ========================================================= */
+const scoreEl    = document.getElementById('score');
+const energyBar  = document.getElementById('energy-bar');
+const energyTxt  = document.getElementById('energy-text');
+const tapsTxt    = document.getElementById('taps-text');
+const hintEl     = document.getElementById('energy-hint');
+const comboBadge = document.getElementById('combo-badge');
+const statTaps   = document.getElementById('stat-taps');
+const statCombo  = document.getElementById('stat-combo');
+const statAvg    = document.getElementById('stat-avg');
+const tapArea    = document.getElementById('tap-area');
+const coin       = document.getElementById('tap-coin');
+const submitBtn  = document.getElementById('submit-btn');
+const nextLight  = document.getElementById('next-lightning');
+const walletBtn  = document.getElementById('wallet-nav-btn');
+const bonusBadge = document.getElementById('skin-bonus-badge');
+
+/* =========================================================
+   PARTICLES
+   ========================================================= */
+(function(){
+  const c=document.getElementById('particle-canvas'),ctx=c.getContext('2d');
+  let pts=[];
+  const COLS=['rgba(56,189,248,','rgba(125,211,252,','rgba(186,230,253,','rgba(14,165,233,','rgba(255,255,255,','rgba(165,243,252,','rgba(251,191,36,','rgba(99,202,253,'];
+  function resize(){c.width=innerWidth;c.height=innerHeight}
+  function mk(init){
+    const type=Math.random()<.15?'star':Math.random()<.08?'spark':'dot';
+    const r=type==='star'?Math.random()*3+1.5:type==='spark'?Math.random()*1.2+.4:Math.random()*2.2+.4;
+    const col=type==='spark'?'rgba(251,191,36,':COLS[0|Math.random()*COLS.length];
+    return{
+      x:init?Math.random()*c.width:(Math.random()<.5?-5:c.width+5),
+      y:init?Math.random()*c.height:c.height+10,
+      vx:(Math.random()-.5)*(type==='spark'?.8:.4),
+      vy:-Math.random()*(type==='spark'?.7:.5)-.08,
+      r,type,col,
+      a:Math.random()*.7+.25,
+      tw:Math.random()*Math.PI*2,
+      ts:Math.random()*.04+.008,
+      rot:Math.random()*Math.PI*2,
+      rotS:(Math.random()-.5)*.04
+    };
+  }
+  function drawStar(x,y,r,a,col,rot){
+    ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+    ctx.beginPath();
+    for(let i=0;i<5;i++){
+      const angle=i*Math.PI*2/5-Math.PI/2;
+      const inner=r*.45;
+      ctx.lineTo(Math.cos(angle)*r,Math.sin(angle)*r);
+      const ia=angle+Math.PI/5;
+      ctx.lineTo(Math.cos(ia)*inner,Math.sin(ia)*inner);
+    }
+    ctx.closePath();
+    ctx.fillStyle=col+a+')';ctx.fill();ctx.restore();
+  }
+  function spawn(){
+    const n=0|(c.width*c.height/3500);
+    for(let i=0;i<n;i++)pts.push(mk(true));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(let i=pts.length-1;i>=0;i--){
+      const p=pts[i];
+      p.x+=p.vx;p.y+=p.vy;p.tw+=p.ts;p.rot+=p.rotS;
+      const a=p.a*(.55+.45*Math.sin(p.tw));
+      if(p.r>1.2){
+        const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3.5);
+        g.addColorStop(0,p.col+a*.9+')');
+        g.addColorStop(1,p.col+'0)');
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*3.5,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      }
+      if(p.type==='star'){
+        drawStar(p.x,p.y,p.r,a,p.col,p.rot);
+      } else {
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.col+a+')';ctx.fill();
+      }
+      if(p.y<-20||p.x<-20||p.x>c.width+20){
+        pts.splice(i,1);pts.push(mk(false));
+      }
+    }
+    if(pts.length<c.width*c.height/3500+60)pts.push(mk(false));
+    requestAnimationFrame(draw);
+  }
+  resize();spawn();draw();
+  window.addEventListener('resize',()=>{resize();pts=[];spawn()});
+})();
+
+/* =========================================================
+   LIGHTNING
+   ========================================================= */
+function boltPath(x1,y1,x2,y2,sp,d){
+  if(d<=0)return`M${x1},${y1}L${x2},${y2}`;
+  const mx=(x1+x2)/2+(Math.random()-.5)*sp,my=(y1+y2)/2+(Math.random()-.5)*sp*.5;
+  return boltPath(x1,y1,mx,my,sp*.55,d-1)+' '+boltPath(mx,my,x2,y2,sp*.55,d-1);
+}
+function triggerLightning(milestone){
+  const W=innerWidth,H=innerHeight,svg=document.getElementById('bolt-group');
+  svg.innerHTML='';
+  const cols=['#ffffff','#38bdf8','#7dd3fc','#fbbf24','#a5f3fc'];
+  for(let i=0;i<6;i++){
+    const sx=W*.1+Math.random()*W*.8,sy=-20,ex=sx+(Math.random()-.5)*300,ey=H*.3+Math.random()*H*.5;
+    const sp=80+Math.random()*120,col=cols[0|Math.random()*cols.length],sw=i===0?3:1.5+Math.random()*1.5,dl=i*60;
+    ['url(#glow2)','url(#glow)'].forEach((f,fi)=>{
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d',boltPath(sx,sy,ex,ey,sp,6));p.setAttribute('fill','none');p.setAttribute('stroke',col);
+      p.setAttribute('stroke-width',fi===0?sw*4:sw);p.setAttribute('stroke-opacity',fi===0?'.3':'1');
+      p.setAttribute('filter',f);p.setAttribute('stroke-linecap','round');
+      p.style.cssText=`stroke-dasharray:2000;stroke-dashoffset:2000;animation:lightning-bolt-in 1.8s ease-out ${dl}ms forwards`;
+      svg.appendChild(p);
+    });
+  }
+  document.getElementById('lightning-sub').textContent=milestone.toLocaleString()+' $TAP REACHED!';
+  const ov=document.getElementById('lightning-overlay');
+  ov.style.display='block';
+  const fl=document.getElementById('lightning-flash'),lt=document.getElementById('lightning-text');
+  fl.style.animation='none';lt.style.animation='none';
+  void fl.offsetWidth;
+  fl.style.animation='lightning-flash 1.8s ease-out forwards';
+  lt.style.animation='lightning-text-in 2.2s ease-out forwards';
+  coin.classList.add('lightning-glow');
+  playSoundLightning();
+  setTimeout(()=>{ov.style.display='none';coin.classList.remove('lightning-glow');},2400);
+}
+
+/* =========================================================
+   GAME LOGIC
+   ========================================================= */
+function updateUI(){
+  scoreEl.textContent=score.toLocaleString();
+  const pct=(energy/MAX_E)*100,col=pct>60?'#38bdf8':pct>30?'#fbbf24':'#ef4444';
+  energyBar.style.width=pct+'%';energyBar.style.background=`linear-gradient(90deg,${col}99,${col})`;
+  energyTxt.style.color=col;energyTxt.textContent=`Energy: ${0|energy}/${MAX_E}`;
+  tapsTxt.textContent=`Taps: ${taps}`;
+  hintEl.textContent=energy<E_TAP?'Recharging energy...':'Tap the coin to earn $TAP!';
+  statTaps.textContent=taps;const cm=0|combo;statCombo.textContent=cm+'x';statAvg.textContent=taps>0?0|score/taps:0;
+  if(cm>1){comboBadge.style.display='inline-block';comboBadge.textContent=cm+'x COMBO!'}else comboBadge.style.display='none';
+  if(score>0){
+    const next=((0|(score/1000))+1)*1000;
+    nextLight.style.display='block';nextLight.innerHTML=`Next ⚡ at <span>${next.toLocaleString()}</span> $TAP`;
+    submitBtn.style.display='flex';
+  }
+  const sd=activeSkinData();
+  if(sd.id!=='default'){
+    bonusBadge.classList.remove('hidden');
+    bonusBadge.textContent=sd.utilityIcon+' '+sd.utility;
+  } else {
+    bonusBadge.classList.add('hidden');
+  }
+}
+
+function spawnFloat(x,y,earned){
+  const lbl=document.createElement('div');lbl.className='float-label';lbl.textContent='+'+earned;
+  lbl.style.cssText=`left:${x}px;top:${y-20}px;transform:translate(-50%,-50%)`;
+  tapArea.appendChild(lbl);setTimeout(()=>lbl.remove(),1000);
+}
+function spawnRipple(x,y){
+  const r=document.createElement('div');r.className='tap-ripple';
+  r.style.cssText=`left:${x-60}px;top:${y-60}px;width:120px;height:120px`;
+  tapArea.appendChild(r);setTimeout(()=>r.remove(),500);
+}
+
+const _lastTapTime = {};
+
+function doTap(cx, cy, pid){
+  const now = Date.now();
+  if(pid !== undefined){
+    if(_lastTapTime[pid] && now - _lastTapTime[pid] < 50) return;
+    _lastTapTime[pid] = now;
+  }
+
+  if(energy < E_TAP){ playSoundNoEnergy(); return; }
+
+  const sd = activeSkinData();
+  const prevComboInt = 0|combo;
+  energy -= E_TAP;
+  combo = Math.min(sd.maxCombo, combo + 0.5);
+  const comboInt = 0|combo;
+  const rawEarned = comboInt;
+  const earned = Math.round(rawEarned * sd.scoreMultiplier);
+  score += earned; taps++;
+
+  if(navigator.vibrate) navigator.vibrate(30);
+
+  if(comboInt !== prevComboInt && (comboInt === 5 || comboInt === 10 || comboInt === 15)){
+    playSoundComboMilestone(comboInt);
+  } else {
+    playSoundTap(comboInt);
+  }
+
+  coin.classList.remove('shaking');void coin.offsetWidth;coin.classList.add('shaking');
+  setTimeout(()=>coin.classList.remove('shaking'),220);
+
+  if(comboTimer) clearTimeout(comboTimer);
+  comboTimer = setTimeout(()=>{
+    if(combo > 2) playSoundComboReset();
+    combo = 1;
+    updateUI();
+  }, sd.comboTimeout);
+
+  const r = tapArea.getBoundingClientRect();
+  spawnFloat(cx - r.left, cy - r.top, earned);
+  spawnRipple(cx - r.left, cy - r.top);
+
+  const ms = (0|(score/1000))*1000;
+  if(ms > 0 && !lightningFired.has(ms)){ lightningFired.add(ms); triggerLightning(ms); }
+  updateUI();
+}
+
+coin.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  coin.classList.add('pressed');
+  doTap(e.clientX, e.clientY, e.pointerId);
+});
+coin.addEventListener('pointerup',   ()=>coin.classList.remove('pressed'));
+coin.addEventListener('pointerleave',()=>coin.classList.remove('pressed'));
+coin.addEventListener('pointercancel',()=>coin.classList.remove('pressed'));
+
+setInterval(()=>{
+  const sd = activeSkinData();
+  energy = Math.min(MAX_E, energy + BASE_E_REGEN * sd.regenMult);
+  updateUI();
+}, E_INT);
+
+updateUI();
+
+/* =========================================================
+   SKINS
+   ========================================================= */
+function renderSkins(){
+  const grid=document.getElementById('skins-grid');grid.innerHTML='';
+  SKINS.forEach(s=>{
+    const owned=ownedSkins.includes(s.id),active=activeSkin===s.id;
+    const div=document.createElement('div');
+    div.className='skin-card'+(active?' active':'')+((!owned&&!s.free)?' locked':'');
+    div.innerHTML=`
+      ${active?'<div class="skin-active-dot"></div>':''}
+      ${(!owned&&!s.free)?'<div class="skin-lock-icon">🔒</div>':''}
+      <img class="skin-img" src="${s.img}" alt="${s.name}" loading="lazy" />
+      <div class="skin-name">${s.name}</div>
+      <div class="skin-utility">${s.utilityIcon} ${s.utility}</div>
+      <div class="skin-price ${s.free?'free':owned?'owned':''}">${s.free?'FREE':owned?'✓ Owned':s.price+' TON'}</div>
+    `;
+    div.onclick=()=>handleSkinClick(s.id);
+    grid.appendChild(div);
+  });
+}
+
+function handleSkinClick(id){
+  const skin=SKINS.find(s=>s.id===id);
+  if(ownedSkins.includes(id)){
+    activeSkin=id;lss('tap_skin',id);
+    coin.src=skin.img;renderSkins();updateUI();return;
+  }
+  pendingSkinId=id;
+  if(!walletAddr){ openModal('wallet-modal'); return; }
+  openPayModal(id);
+}
+
+function openPayModal(id){
+  const skin=SKINS.find(s=>s.id===id);
+  const nanos=Math.round(skin.price*1e9);
+  const comment=`Buy ${skin.name} - TapTapIsBack`;
+  const body=document.getElementById('pay-modal-body');
+  const useTonConnect=tcUI&&tcUI.connected;
+  body.innerHTML=`
+    <div style="text-align:center;margin-bottom:20px">
+      <img src="${skin.img}" style="width:110px;height:110px;border-radius:50%;filter:drop-shadow(0 0 20px rgba(56,189,248,.6));margin-bottom:12px" />
+      <div style="font-size:1.05rem;font-weight:800;color:#7dd3fc">${skin.name}</div>
+      <div style="font-size:.78rem;font-weight:700;color:#fbbf24;margin:4px 0">${skin.utilityIcon} ${skin.utility}</div>
+      <div style="font-size:1.8rem;font-weight:900;color:#38bdf8;margin:6px 0">${skin.price} TON</div>
+      <div style="font-size:.72rem;color:rgba(56,189,248,.45)">→ <span style="color:#7dd3fc;font-family:monospace">${TREASURY.slice(0,12)}…${TREASURY.slice(-6)}</span></div>
+    </div>
+    ${useTonConnect?`
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="tcSendTx('${TREASURY}',${nanos},'${id}')">
+        💎 Pay ${skin.price} TON via Connected Wallet
+      </button>
+      <p style="color:rgba(56,189,248,.4);font-size:.72rem;text-align:center;margin-top:8px">Skin unlocks automatically after your wallet confirms the transaction.</p>
+    `:`
+      <p style="color:rgba(186,230,253,.6);font-size:.82rem;margin-bottom:10px;text-align:center">Open your wallet to send exactly <strong style="color:#38bdf8">${skin.price} TON</strong>, then tap the confirm button below.</p>
+      ${Object.entries(WALLET_LINKS).map(([name,fn])=>`
+        <a href="${fn(TREASURY,nanos,comment)}" target="_blank" rel="noopener" class="btn-outline">
+          <span style="font-size:1.3rem">${name==='Tonkeeper'?'🔷':name==='MyTonWallet'?'💎':'🌐'}</span> Open ${name}
+        </a>
+      `).join('')}
+      <div class="pay-confirm-note">
+        ⚠️ Only tap confirm after your wallet shows the transaction as sent. Skin unlocks on your word of honour — connect via TON Connect for automatic verification.
+      </div>
+      <button class="btn-green" onclick="confirmPurchase('${id}')">
+        ✅ I've sent the payment — unlock skin
+      </button>
+    `}
+  `;
+  openModal('pay-modal');
+}
+
+function confirmPurchase(id){
+  ownedSkins=[...new Set([...ownedSkins,id])];lss('tap_owned_skins',ownedSkins);
+  activeSkin=id;lss('tap_skin',id);
+  coin.src=SKINS.find(s=>s.id===id).img;
+  playSoundUnlock();
+  closeModal('pay-modal');renderSkins();updateUI();
+}
+
+renderSkins();
+coin.src=SKINS.find(s=>s.id===activeSkin)?.img||SKINS[0].img;
+
+/* =========================================================
+   FIREBASE CONFIG — taptapisback project
+   ========================================================= */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCBPp96knxOxC35sXKoi1JiUKoVBLemfwQ",
+  authDomain:        "taptapisback.firebaseapp.com",
+  databaseURL:       "https://taptapisback-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "taptapisback",
+  storageBucket:     "taptapisback.firebasestorage.app",
+  messagingSenderId: "688587946195",
+  appId:             "1:688587946195:web:d724ec1dc54fca319cfc26",
+  measurementId:     "G-J3B6KTDFJ5"
+};
+
+/* =========================================================
+   LEADERBOARD — Firebase Realtime Database
+   Max 6 entries · permanent cloud storage · top 3 effects
+   ========================================================= */
+let db = null;
+let lbRef = null;
+let firebaseConnected = false;  /* true once Firebase read succeeds */
+
+const FIREBASE_READY = (
+  FIREBASE_CONFIG.apiKey &&
+  FIREBASE_CONFIG.apiKey.length > 10 &&
+  !FIREBASE_CONFIG.apiKey.includes('GANTI') &&
+  !FIREBASE_CONFIG.apiKey.includes('YOUR_')
+);
+
+/* ------ UI helpers ------ */
+function setLbStatus(status){
+  /* status: 'live' | 'offline' | 'error' | 'loading' */
+  document.getElementById('lb-live-indicator').style.display    = status==='live'    ? 'block' : 'none';
+  document.getElementById('lb-offline-indicator').style.display = status==='offline' ? 'block' : 'none';
+  document.getElementById('lb-error-indicator').style.display   = status==='error'   ? 'block' : 'none';
+  document.getElementById('lb-firebase-hint').style.display     = status==='error'   ? 'block' : 'none';
+}
+
+/* ------ Render ------ */
+function renderLeaderboard(){
+  const el = document.getElementById('lb-table');
+  const entries = leaderboard.slice(0, MAX_LB_ENTRIES);
+
+  const rankClass  = ['gold','silver','bronze'];
+  const rankLabel  = ['rank-1','rank-2','rank-3'];
+  const crownEmoji = ['👑','🥈','🥉'];
+  const scoreClass = ['first','second','third'];
+  const sparkles   = ['✨','⭐','🌟'];
+
+  /* Always render all 6 slots — empty ones show placeholder */
+  let html = '';
+  for(let i = 0; i < MAX_LB_ENTRIES; i++){
+    const e      = entries[i];
+    const isTop3 = i < 3;
+    const rankBubbleClass = isTop3 ? rankClass[i] : 'other';
+
+    if(e){
+      /* Filled slot */
+      const rowClass  = isTop3 ? `lb-row ${rankLabel[i]}` : 'lb-row';
+      const scoreCls  = isTop3 ? scoreClass[i] : '';
+      const crown     = isTop3 ? `<span class="lb-crown">${crownEmoji[i]}</span>` : '';
+      const spark     = isTop3 ? `<div class="lb-sparkles">${sparkles[i]}</div>` : '';
+      const nameClass = i===0  ? 'lb-name lb-name-rank1' : 'lb-name';
+      html += `
+        <div class="${rowClass}">
+          ${spark}
+          <div class="lb-rank ${rankBubbleClass}">${i+1}</div>
+          <div style="flex:1;text-align:left">
+            <div class="${nameClass}">${crown}${e.name}</div>
+            <div class="lb-date">${e.date||''}</div>
+          </div>
+          <div class="lb-score ${scoreCls}">${Number(e.score).toLocaleString()} <span>$TAP</span></div>
+        </div>`;
+    } else {
+      /* Empty slot */
+      html += `
+        <div class="lb-row lb-row-empty">
+          <div class="lb-rank ${rankBubbleClass}" style="opacity:.35">${i+1}</div>
+          <div style="flex:1;text-align:left">
+            <div class="lb-name" style="color:rgba(56,189,248,.25);font-style:italic">— waiting for challenger —</div>
+          </div>
+          <div class="lb-score" style="color:rgba(56,189,248,.2);font-size:.85rem">0 <span>$TAP</span></div>
+        </div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+/* ------ Merge helper: gabungkan dua array, deduplikasi, sort, slice ------ */
+function mergeLeaderboards(a, b){
+  const map = {};
+  [...a, ...b].forEach(e=>{
+    if(!e || !e.name) return;
+    const key = e.name.toLowerCase().trim();
+    if(!map[key] || e.score > map[key].score) map[key] = e;
+  });
+  return Object.values(map).sort((x,y)=>y.score-x.score).slice(0, MAX_LB_ENTRIES);
+}
+
+/* ------ Ambil top-N dari snapshot Firebase (sort numerik) ------ */
+function rowsFromSnap(snap){
+  const rows = [];
+  snap.forEach(child=>{
+    const v = child.val();
+    if(v && v.name && v.score != null){
+      rows.push({ name: v.name, score: Number(v.score), date: v.date||'' });
+    }
+  });
+  return rows.sort((a,b)=>b.score-a.score).slice(0, MAX_LB_ENTRIES);
+}
+
+/* ------ Manual refresh button ------ */
+function refreshLeaderboard(){
+  const btn = document.getElementById('lb-refresh-btn');
+  btn.classList.add('spinning');
+  if(lbRef){
+    /* Ambil lebih banyak agar sort numerik kita sendiri bisa benar */
+    lbRef.orderByChild('score').limitToLast(100).once('value', snap=>{
+      const rows = rowsFromSnap(snap);
+      if(rows.length > 0){
+        leaderboard = rows;
+        lss('tap_leaderboard', leaderboard);
+      } else {
+        /* Firebase kosong — pakai localStorage */
+        leaderboard = ls('tap_leaderboard', []);
+      }
+      renderLeaderboard();
+      btn.classList.remove('spinning');
+    }, ()=>{
+      leaderboard = ls('tap_leaderboard', []);
+      renderLeaderboard();
+      btn.classList.remove('spinning');
+    });
+  } else {
+    leaderboard = ls('tap_leaderboard', []);
+    renderLeaderboard();
+    setTimeout(()=>btn.classList.remove('spinning'), 600);
+  }
+}
+
+/* ------ Firebase init ------ */
+(function initFirebase(){
+  if(!FIREBASE_READY){ setLbStatus('offline'); renderLeaderboard(); return; }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db    = firebase.database();
+    lbRef = db.ref('leaderboard');
+
+    /* Real-time listener — ambil 100 lalu sort numerik sendiri */
+    lbRef.orderByChild('score').limitToLast(100).on('value', snap=>{
+      const rows = rowsFromSnap(snap);
+      if(rows.length > 0){
+        leaderboard = rows;
+        lss('tap_leaderboard', leaderboard);
+      } else if(!firebaseConnected){
+        /* Pertama kali connect tapi Firebase kosong — pakai localStorage */
+        leaderboard = ls('tap_leaderboard', []);
+      }
+      firebaseConnected = true;
+      setLbStatus('live');
+      renderLeaderboard();
+    }, err=>{
+      console.warn('Firebase read error:', err);
+      if(err.code === 'PERMISSION_DENIED') setLbStatus('error');
+      else setLbStatus('offline');
+      leaderboard = ls('tap_leaderboard', []);
+      renderLeaderboard();
+    });
+  }catch(e){
+    console.warn('Firebase init error:', e);
+    setLbStatus('offline');
+    leaderboard = ls('tap_leaderboard', []);
+    renderLeaderboard();
+  }
+})();
+
+/* ------ Submit score ------ */
+function openSubmitModal(){
+  document.getElementById('submit-score-val').textContent = score.toLocaleString();
+  document.getElementById('submit-name-input').value = '';
+  document.getElementById('submit-error').style.display  = 'none';
+  document.getElementById('submit-status').style.display = 'none';
+  openModal('submit-modal');
+}
+
+async function submitScore(){
+  const name   = document.getElementById('submit-name-input').value.trim();
+  const errEl  = document.getElementById('submit-error');
+  const statEl = document.getElementById('submit-status');
+  const btn    = document.getElementById('submit-do-btn');
+  errEl.style.display='none'; statEl.style.display='none';
+
+  if(!name){
+    errEl.textContent='⚠️ Masukkan nama / alias kamu dulu!';
+    errEl.style.display='block';
+    return;
+  }
+
+  btn.disabled=true; btn.textContent='Submitting...';
+  const entry = { name, score: Number(score), date: new Date().toLocaleDateString('id-ID') };
+  let firebaseOk = false;
+
+  /* --- 1. Save to localStorage FIRST (always, immediately) --- */
+  const mergedLocal = [...leaderboard, entry]
+    .sort((a,b)=>b.score-a.score)
+    .slice(0, MAX_LB_ENTRIES);
+  leaderboard = mergedLocal;
+  lss('tap_leaderboard', leaderboard);
+  renderLeaderboard();
+
+  /* --- 2. Try Firebase cloud save --- */
+  if(FIREBASE_READY && lbRef){
+    try{
+      await lbRef.push(entry);
+
+      /* Trim cloud to top MAX_LB_ENTRIES only */
+      lbRef.orderByChild('score').once('value', snap=>{
+        const all=[];
+        snap.forEach(c=>all.push({key:c.key,...c.val()}));
+        all.sort((a,b)=>b.score-a.score);
+        if(all.length > MAX_LB_ENTRIES){
+          all.slice(MAX_LB_ENTRIES).forEach(r=>lbRef.child(r.key).remove());
+        }
+      });
+
+      firebaseOk = true;
+      firebaseConnected = true;
+      setLbStatus('live');
+      statEl.textContent = '✅ Score tersimpan permanen di cloud!';
+      statEl.style.display = 'block';
+    }catch(e){
+      console.error('Firebase write error:', e);
+      if(e.code==='PERMISSION_DENIED'){
+        setLbStatus('error');
+        errEl.textContent = '⚠️ Firebase Rules belum diset. Score disimpan lokal saja.';
+      } else {
+        setLbStatus('offline');
+        errEl.textContent = '⚠️ Tidak bisa reach Firebase. Score disimpan lokal saja.';
+      }
+      errEl.style.display = 'block';
+    }
+  } else {
+    setLbStatus('offline');
+    statEl.textContent = '✅ Score disimpan lokal di browser ini.';
+    statEl.style.display = 'block';
+  }
+
+  /* --- 3. Reset game setelah delay --- */
+  setTimeout(()=>{
+    score=0; taps=0; combo=1; energy=MAX_E; lightningFired.clear();
+    submitBtn.style.display='none';
+    nextLight.style.display='none';
+    comboBadge.style.display='none';
+    btn.disabled=false;
+    btn.textContent='Submit & Reset Score';
+    closeModal('submit-modal');
+    updateUI();
+  }, firebaseOk ? 1200 : 2200);
+}
+
+/* Render dari localStorage dulu sambil tunggu Firebase */
+renderLeaderboard();
+if(!FIREBASE_READY) setLbStatus('offline');
+
+/* =========================================================
+   TON CONNECT
+   ========================================================= */
+let tcUI = null;
+
+const TC_WALLETS = [
+  { name:'Tonkeeper',   emoji:'🔷', desc:'Most popular TON wallet' },
+  { name:'MyTonWallet', emoji:'💎', desc:'Feature-rich TON wallet' },
+  { name:'Tonhub',      emoji:'🌐', desc:'Mobile & web TON wallet' },
+];
+
+async function initTonConnect(){
+  try{
+    if(typeof TON_CONNECT_UI==='undefined') return;
+    const manifest={url:window.location.origin||'https://taptapisback.io',name:'TapTapIsBack',iconUrl:'https://i.imgur.com/IWK2yHm.png'};
+    tcUI=new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(manifest)),
+      buttonRootId:null
+    });
+    tcUI.onStatusChange(wallet=>{
+      if(wallet){
+        walletAddr=wallet.account.address;
+        updateWalletBtn();
+        if(pendingSkinId){openPayModal(pendingSkinId);pendingSkinId=null;}
+      } else {
+        walletAddr=null;
+        updateWalletBtn();
+      }
+    });
+    const restored=await tcUI.connectionRestored;
+    if(restored&&tcUI.wallet){walletAddr=tcUI.wallet.account.address;updateWalletBtn();}
+  }catch(e){ console.error('TonConnect init failed',e); }
+}
+
+function buildWalletModal(){
+  const list=document.getElementById('tc-wallet-list');
+  list.innerHTML=TC_WALLETS.map(w=>`
+    <div class="tc-wallet-item" onclick="connectViaWallet()">
+      <span style="font-size:1.6rem">${w.emoji}</span>
+      <span style="flex:1">${w.name}</span>
+      <small style="font-size:.7rem;color:rgba(56,189,248,.5)">${w.desc}</small>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(56,189,248,.4)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  `).join('');
+}
+
+async function connectViaWallet(){
+  closeModal('wallet-modal');
+  try{ if(tcUI) await tcUI.openModal(); }catch(e){ console.error('Connect error',e); }
+}
+
+async function handleWalletBtn(){
+  if(walletAddr){
+    try{ if(tcUI) await tcUI.disconnect(); }catch(e){}
+    walletAddr=null;updateWalletBtn();
+  } else {
+    if(tcUI){
+      try{ await tcUI.openModal(); }catch(e){ openModal('wallet-modal'); }
+    } else { openModal('wallet-modal'); }
+  }
+}
+
+async function tcSendTx(toAddr,amountNano,skinId){
+  if(!tcUI||!tcUI.connected) return;
+  try{
+    await tcUI.sendTransaction({
+      validUntil:Math.floor(Date.now()/1000)+300,
+      messages:[{address:toAddr,amount:String(amountNano)}]
+    });
+    confirmPurchase(skinId);
+  }catch(e){ console.error('Transaction rejected or failed',e); }
+}
+
+function updateWalletBtn(){
+  if(walletAddr){
+    walletBtn.className='wallet-connected';
+    walletBtn.textContent=walletAddr.length>10?walletAddr.slice(0,6)+'…'+walletAddr.slice(-4):walletAddr;
+    walletBtn.title='Click to disconnect';
+  } else {
+    walletBtn.className='wallet-btn';
+    walletBtn.textContent='Connect Wallet';
+    walletBtn.title='';
+  }
+}
+
+buildWalletModal();
+initTonConnect();
+
+/* =========================================================
+   TIP TO DEV
+   ========================================================= */
+function selectTipAmount(amount,el){
+  selectedTipAmount=amount;
+  document.querySelectorAll('.tip-amount-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  renderTipActions();
+}
+function renderTipActions(){
+  const nanos=Math.round(selectedTipAmount*1e9);
+  const comment='Tip from TapTapIsBack fan!';
+  const useTonConnect=tcUI&&tcUI.connected;
+  const el=document.getElementById('tip-modal-actions');
+  if(!el) return;
+  el.innerHTML=useTonConnect?`
+    <button class="btn-golden" onclick="tcSendTip(${nanos})">
+      ☕ Send ${selectedTipAmount} TON Tip via Wallet
+    </button>
+  `:`
+    ${Object.entries(WALLET_LINKS).map(([name,fn])=>`
+      <a href="${fn(DEV_WALLET,nanos,comment)}" target="_blank" rel="noopener" class="btn-outline" style="justify-content:center">
+        <span style="font-size:1.2rem">${name==='Tonkeeper'?'🔷':name==='MyTonWallet'?'💎':'🌐'}</span> Tip with ${name}
+      </a>
+    `).join('')}
+  `;
+}
+async function tcSendTip(amountNano){
+  if(!tcUI||!tcUI.connected) return;
+  try{
+    await tcUI.sendTransaction({
+      validUntil:Math.floor(Date.now()/1000)+300,
+      messages:[{address:DEV_WALLET,amount:String(amountNano)}]
+    });
+    closeModal('tip-modal');
+    setTimeout(()=>alert('Thank you for your tip! 🙏 The developer appreciates your support!'),300);
+  }catch(e){ console.error('Tip failed',e); }
+}
+function openTipModal(){
+  selectedTipAmount=0.5;
+  document.querySelectorAll('.tip-amount-btn').forEach((b,i)=>b.classList.toggle('selected',i===1));
+  renderTipActions();
+  openModal('tip-modal');
+}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'))});
+</script>
+</body>
+</html>
